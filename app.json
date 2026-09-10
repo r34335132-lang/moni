@@ -1,45 +1,84 @@
 {
   "expo": {
     "name": "MONI",
-    "slug": "mobile",
+    "slug": "moni",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "icon": "./assets/images/icon.jpeg",
+    "scheme": "moni",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/icon.jpeg",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A0A0A"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.moni.finance",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "MONI necesita acceso al micrófono para registrar transacciones por voz.",
+        "NSSpeechRecognitionUsageDescription": "MONI necesita reconocimiento de voz para convertir tu audio en transacciones.",
+        "NSCameraUsageDescription": "MONI necesita acceso a la cámara para escanear tickets y recibos.",
+        "NSPhotoLibraryUsageDescription": "MONI necesita acceso a tus fotos para escanear tickets.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.moni.finance",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.jpeg",
+        "backgroundColor": "#0A0A0A"
+      }
+    },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon.jpeg",
+      "bundler": "metro"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
-      ],
+      "expo-router",
       "expo-font",
-      "expo-web-browser",
+      "expo-secure-store",
       [
         "expo-image-picker",
         {
           "photosPermission": "MONI necesita acceso a tus fotos para escanear tickets.",
           "cameraPermission": "MONI necesita acceso a la cámara para escanear tickets y recibos."
         }
-      ]
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "MONI necesita acceso al micrófono para registrar transacciones por voz.",
+          "speechRecognitionPermission": "MONI necesita reconocimiento de voz para convertir tu audio en transacciones."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.jpeg",
+          "color": "#22C55E"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-asset"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "507faae8-801b-4d66-b63d-f1c070ce2676"
+      }
+    },
+    "owner": "rafafndz"
   }
 }

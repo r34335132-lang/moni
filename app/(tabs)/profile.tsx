@@ -1,262 +1,157 @@
+import React, { useState } from 'react';
+import { View, Text, Alert, Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
-import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  useColorScheme,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useMovements } from '@/context/MovementsContext';
-import { useProfile } from '@/context/ProfileContext';
-import { useColors } from '@/hooks/useColors';
+import { useAuth } from '@/src/providers/AuthProvider';
+import { useLanguage } from '@/src/providers/LanguageProvider';
+import { useTheme } from '@/src/hooks/useTheme';
+import { profileService } from '@/src/services/transactionService';
+import { subscriptionService } from '@/src/services/subscriptionService';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
+import { ScreenContainer } from '@/src/components/ScreenContainer';
+import { Input } from '@/src/components/ui/Input';
+import { Button } from '@/src/components/ui/Button';
+import { getErrorMessage } from '@/src/core/utils/errors';
+import type { AppLocale } from '@/src/core/i18n/types';
 
-const CURRENCIES = [
-  { code: 'MXN', symbol: '$', label: 'Peso mexicano' },
-  { code: 'USD', symbol: '$', label: 'Dólar americano' },
-  { code: 'EUR', symbol: '€', label: 'Euro' },
-  { code: 'COP', symbol: '$', label: 'Peso colombiano' },
-  { code: 'ARS', symbol: '$', label: 'Peso argentino' },
+const CURRENCIES = ['MXN', 'USD', 'EUR', 'COP', 'ARS'];
+const LOCALES: { id: AppLocale; label: string }[] = [
+  { id: 'es', label: 'Español' },
+  { id: 'en', label: 'English' },
 ];
 
-function SettingsRow({
-  icon, iconColor, label, right, onPress, danger, noBorder,
-}: {
-  icon: string; iconColor?: string; label: string; right?: React.ReactNode;
-  onPress?: () => void; danger?: boolean; noBorder?: boolean;
-}) {
-  const colors = useColors();
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.row,
-        !noBorder && [styles.rowBorder, { borderBottomColor: colors.border }],
-        pressed && onPress && { backgroundColor: colors.muted },
-      ]}
-      onPress={onPress}
-    >
-      <View style={[styles.rowIcon, { backgroundColor: (iconColor ?? colors.mutedForeground) + '18' }]}>
-        <Ionicons name={icon as any} size={16} color={iconColor ?? colors.mutedForeground} />
-      </View>
-      <Text style={[styles.rowLabel, { color: danger ? colors.destructive : colors.foreground }]}>{label}</Text>
-      <View style={styles.rowRight}>{right ?? (onPress && (
-        <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
-      ))}</View>
-    </Pressable>
-  );
-}
-
 export default function ProfileScreen() {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
-  const { profile, updateProfile } = useProfile();
-  const { movements } = useMovements();
-  const colorScheme = useColorScheme();
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState(profile.name);
+  const { profile, user, signOut, deleteAccount, refreshProfile, isPremium } = useAuth();
+  const { colors, radius } = useTheme();
+  const { t, locale, setLocale } = useLanguage();
+  const premiumReady = subscriptionService.isConfigured();
+  const [name, setName] = useState(profile?.full_name ?? '');
+  const [currency, setCurrency] = useState(profile?.currency ?? 'MXN');
+  const [saving, setSaving] = useState(false);
 
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
-  const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
-
-  const stats = useMemo(() => {
-    const now = new Date();
-    const thisMonth = movements.filter((m) => {
-      const d = new Date(m.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-    const income = thisMonth.filter((m) => m.type === 'income').reduce((s, m) => s + m.amount, 0);
-    const expenses = thisMonth.filter((m) => m.type === 'expense').reduce((s, m) => s + m.amount, 0);
-    return { income, expenses, balance: income - expenses, total: movements.length };
-  }, [movements]);
-
-  const handleSaveName = async () => {
-    if (nameInput.trim()) await updateProfile({ name: nameInput.trim() });
-    setEditingName(false);
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await profileService.update(user.id, { full_name: name, currency });
+      await refreshProfile();
+      Alert.alert(t('common.saved'), t('profile.savedOk'));
+    } catch (e) {
+      Alert.alert(t('common.error'), getErrorMessage(e));
+    } finally {
+      setSaving(false);
+    }
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t('profile.deleteAccount'),
+      t('profile.deleteAccountConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              router.replace('/(auth)/login');
+            } catch (e) {
+              Alert.alert(t('common.error'), getErrorMessage(e));
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const menuItems = [
+    { icon: 'list-outline' as const, label: t('profile.movements'), route: '/(tabs)/transactions' },
+    { icon: 'bar-chart-outline' as const, label: t('profile.reports'), route: '/reports' },
+    { icon: 'people-outline' as const, label: t('profile.beneficiaries'), route: '/beneficiaries' },
+    { icon: 'wallet-outline' as const, label: t('profile.accounts'), route: '/accounts' },
+    { icon: 'grid-outline' as const, label: t('profile.categories'), route: '/categories' },
+    { icon: 'alarm-outline' as const, label: t('profile.reminders'), route: '/(tabs)/reminders' },
+    { icon: 'game-controller-outline' as const, label: t('profile.minigames'), route: '/minigame' },
+    { icon: 'business-outline' as const, label: t('profile.banks'), route: '/bank' },
+    { icon: 'flag-outline' as const, label: t('profile.savingsGoals'), route: '/savings-goals' },
+    {
+      icon: 'diamond-outline' as const,
+      label: isPremium ? t('profile.premiumActive') : premiumReady ? t('profile.premium') : t('profile.premiumSoon'),
+      route: '/subscription',
+    },
+  ];
+
   return (
-    <ScrollView
-      style={[styles.scroll, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: botPad + 110 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <View style={[styles.profileHeader, { paddingTop: topPad + 24 }]}>
-        <Pressable
-          style={[styles.bigAvatar, { backgroundColor: colors.primary }]}
-          onPress={() => { setEditingName(true); setNameInput(profile.name); }}
-        >
-          <Text style={styles.bigAvatarLetter}>{profile.name.charAt(0).toUpperCase()}</Text>
-        </Pressable>
-        {editingName ? (
-          <TextInput
-            style={[styles.nameEdit, { color: colors.foreground, borderBottomColor: colors.primary, fontFamily: 'Inter_700Bold' }]}
-            value={nameInput}
-            onChangeText={setNameInput}
-            autoFocus
-            onBlur={handleSaveName}
-            returnKeyType="done"
-            onSubmitEditing={handleSaveName}
-            textAlign="center"
-          />
-        ) : (
-          <Pressable onPress={() => { setEditingName(true); setNameInput(profile.name); }} style={styles.nameRow}>
-            <Text style={[styles.profileName, { color: colors.foreground }]}>{profile.name}</Text>
-            <Ionicons name="pencil" size={13} color={colors.mutedForeground} />
-          </Pressable>
-        )}
-        <Text style={[styles.profileSub, { color: colors.mutedForeground }]}>
-          {stats.total} movimientos registrados
-        </Text>
-      </View>
-
-      {/* Quick stats strip */}
-      <View style={[styles.statsStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.stripItem}>
-          <Text style={[styles.stripValue, { color: '#22C55E' }]}>
-            ${stats.income.toLocaleString('es-MX')}
-          </Text>
-          <Text style={[styles.stripLabel, { color: colors.mutedForeground }]}>Ingresos</Text>
-        </View>
-        <View style={[styles.stripDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.stripItem}>
-          <Text style={[styles.stripValue, { color: colors.foreground }]}>
-            ${stats.expenses.toLocaleString('es-MX')}
-          </Text>
-          <Text style={[styles.stripLabel, { color: colors.mutedForeground }]}>Gastos</Text>
-        </View>
-        <View style={[styles.stripDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.stripItem}>
-          <Text style={[styles.stripValue, { color: stats.balance >= 0 ? '#22C55E' : colors.destructive }]}>
-            ${Math.abs(stats.balance).toLocaleString('es-MX')}
-          </Text>
-          <Text style={[styles.stripLabel, { color: colors.mutedForeground }]}>Balance</Text>
-        </View>
-      </View>
-
-      {/* Currency */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Moneda</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {CURRENCIES.map((c, i) => (
-            <SettingsRow
-              key={c.code}
-              icon="cash-outline"
-              iconColor={colors.primary}
-              label={`${c.label} (${c.code})`}
-              noBorder={i === CURRENCIES.length - 1}
-              onPress={async () => {
-                Haptics.selectionAsync();
-                await updateProfile({ currency: c.code, currencySymbol: c.symbol });
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScreenHeader title={t('profile.title')} subtitle={t('profile.subtitle')} />
+      <ScreenContainer>
+        <Input label={t('profile.name')} value={name} onChangeText={setName} />
+        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('profile.currency')}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {CURRENCIES.map((c) => (
+            <Pressable
+              key={c}
+              onPress={() => setCurrency(c)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: radius,
+                backgroundColor: currency === c ? colors.primary : colors.secondary,
+                borderWidth: 1,
+                borderColor: currency === c ? colors.primary : colors.border,
               }}
-              right={
-                profile.currency === c.code
-                  ? <Ionicons name="checkmark" size={16} color={colors.primary} />
-                  : null
-              }
-            />
+            >
+              <Text style={{ color: currency === c ? colors.primaryForeground : colors.foreground, fontWeight: '500' }}>{c}</Text>
+            </Pressable>
           ))}
         </View>
-      </View>
 
-      {/* Appearance */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Apariencia</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingsRow
-            icon={colorScheme === 'dark' ? 'moon' : 'sunny'}
-            iconColor="#F59E0B"
-            label={colorScheme === 'dark' ? 'Modo oscuro' : 'Modo claro'}
-            noBorder
-            right={<Text style={[styles.autoText, { color: colors.mutedForeground }]}>Automático</Text>}
-          />
+        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('profile.language')}</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {LOCALES.map((opt) => (
+            <Pressable
+              key={opt.id}
+              onPress={() => setLocale(opt.id)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: radius,
+                backgroundColor: locale === opt.id ? colors.primary : colors.secondary,
+                borderWidth: 1,
+                borderColor: locale === opt.id ? colors.primary : colors.border,
+              }}
+            >
+              <Text style={{ color: locale === opt.id ? colors.primaryForeground : colors.foreground, fontWeight: '500' }}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
-      </View>
 
-      {/* Data */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Datos</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <SettingsRow
-            icon="download-outline"
-            iconColor={colors.primary}
-            label="Exportar datos"
-            onPress={() => Alert.alert('Exportar datos', 'Próximamente.')}
-          />
-          <SettingsRow
-            icon="trash-outline"
-            iconColor={colors.destructive}
-            label="Eliminar todos los datos"
-            noBorder
-            danger
-            onPress={() =>
-              Alert.alert('Eliminar datos', '¿Estás seguro? No se puede deshacer.', [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Eliminar',
-                  style: 'destructive',
-                  onPress: async () => {
-                    await AsyncStorage.multiRemove([
-                      '@moni_movements_v2', '@moni_init_v2',
-                      '@moni_reminders_v2', '@moni_reminders_init_v2', '@moni_chat_v2',
-                    ]);
-                    Alert.alert('Listo', 'Reinicia la app para ver los cambios.');
-                  },
-                },
-              ])
-            }
-          />
+        <Button title={t('profile.saveChanges')} onPress={handleSave} loading={saving} />
+
+        <View style={{ marginTop: 24 }}>
+          {menuItems.map((item) => (
+            <Pressable
+              key={item.route}
+              onPress={() => router.push(item.route as never)}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
+              <Ionicons name={item.icon} size={22} color={colors.foreground} />
+              <Text style={{ color: colors.foreground, fontSize: 16, marginLeft: 14, flex: 1 }}>{item.label}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
+            </Pressable>
+          ))}
         </View>
-      </View>
 
-      <Text style={[styles.version, { color: colors.mutedForeground }]}>MONI · Tu dinero bajo control</Text>
-    </ScrollView>
+        <Button title={t('profile.signOut')} variant="secondary" onPress={signOut} style={{ marginTop: 24 }} />
+        <Button title={t('profile.deleteAccount')} variant="destructive" onPress={handleDeleteAccount} style={{ marginTop: 12 }} />
+
+        <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center', marginTop: 24 }}>
+          {profile?.email} · MONI v1.0.0
+        </Text>
+      </ScreenContainer>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  profileHeader: { alignItems: 'center', gap: 8, paddingBottom: 24, paddingHorizontal: 24 },
-  bigAvatar: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
-  bigAvatarLetter: { color: '#fff', fontSize: 28, fontFamily: 'Inter_700Bold' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  profileName: { fontSize: 24, fontFamily: 'Inter_700Bold' },
-  nameEdit: {
-    fontSize: 24,
-    borderBottomWidth: 2,
-    paddingBottom: 2,
-    width: 200,
-    textAlign: 'center',
-  },
-  profileSub: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  statsStrip: {
-    flexDirection: 'row',
-    marginHorizontal: 24,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 28,
-  },
-  stripItem: { flex: 1, paddingVertical: 16, alignItems: 'center', gap: 4 },
-  stripDivider: { width: 1 },
-  stripValue: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  stripLabel: { fontSize: 11, fontFamily: 'Inter_400Regular' },
-  section: { paddingHorizontal: 24, marginBottom: 20 },
-  sectionLabel: { fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8, marginBottom: 8 },
-  card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13 },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth },
-  rowIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular' },
-  rowRight: { minWidth: 20, alignItems: 'flex-end' },
-  autoText: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  version: { textAlign: 'center', fontSize: 12, fontFamily: 'Inter_400Regular', paddingVertical: 20 },
-});

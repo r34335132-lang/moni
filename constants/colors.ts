@@ -27,7 +27,7 @@ const colors = {
     card: '#141414',
     cardForeground: '#F5F5F5',
     primary: '#22C55E',
-    primaryForeground: '#0A0A0A',
+    primaryForeground: '#FFFFFF',
     secondary: '#1A1A1A',
     secondaryForeground: '#F5F5F5',
     muted: '#1A1A1A',
