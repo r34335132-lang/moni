@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, Pressable, Switch, ActivityIndicator } from 'react-native';
-import { FormModal } from '@/src/components/ui/FormModal';
+import { View, Alert, Switch, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { FormModal } from '@/src/components/ui/FormModal';
 import { useReminders, useAddReminder, useUpdateReminder, useDeleteReminder, useSendDailySummary } from '@/src/hooks/useReminders';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useLanguage } from '@/src/providers/LanguageProvider';
@@ -11,10 +11,14 @@ import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Input } from '@/src/components/ui/Input';
 import { Button } from '@/src/components/ui/Button';
 import { PrimarySaveButton } from '@/src/components/ui/PrimarySaveButton';
-import { Card } from '@/src/components/ui/Card';
+import { Card, SectionLabel } from '@/src/components/ui/Card';
 import { EmptyState } from '@/src/components/EmptyState';
 import { DatePickerField } from '@/src/components/ui/DatePickerField';
 import { TimePickerField } from '@/src/components/ui/TimePickerField';
+import { IconActionButton } from '@/src/components/ui/IconActionButton';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AnimatedIn } from '@/src/components/AnimatedIn';
+import { AppText, Font } from '@/src/components/ui/AppText';
 import { formatDate } from '@/src/core/utils/format';
 import { getErrorMessage } from '@/src/core/utils/errors';
 import { notificationService, type LocalReminder, type ReminderRepeat } from '@/src/services/notificationService';
@@ -34,7 +38,7 @@ function defaultDueDate() {
 
 export default function RemindersTabScreen() {
   const { user, profile } = useAuth();
-  const { colors, radius } = useTheme();
+  const { colors, radiusPill } = useTheme();
   const { t } = useLanguage();
   const { data: reminders, isLoading } = useReminders();
   const addReminder = useAddReminder();
@@ -140,49 +144,131 @@ export default function RemindersTabScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={t('reminders.title')} subtitle={t('reminders.subtitle')} />
       <ScreenContainer>
-        <Card style={{ marginBottom: 16 }}>
-          <Text style={{ color: colors.foreground, fontWeight: '600', marginBottom: 8 }}>{t('reminders.autoNotifications')}</Text>
-          <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20, marginBottom: 12 }}>
-            {t('reminders.autoNotificationsDesc')}
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Button title={t('reminders.enablePush')} onPress={handleEnableNotifications} size="sm" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button title={t('reminders.viewTodaySummary')} variant="secondary" size="sm" loading={sendSummary.isPending} onPress={() => sendSummary.mutate()} />
-            </View>
+        <AnimatedIn>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 18 }}>
+            <PressableScale
+              onPress={handleEnableNotifications}
+              style={{
+                flex: 1,
+                backgroundColor: colors.card,
+                borderRadius: 20,
+                paddingVertical: 14,
+                paddingHorizontal: 12,
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 2,
+              }}
+            >
+              <Ionicons name="notifications-outline" size={22} color={colors.primary} />
+              <AppText style={{ fontFamily: Font.semibold, fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+                {t('reminders.enablePush')}
+              </AppText>
+            </PressableScale>
+            <PressableScale
+              onPress={() => sendSummary.mutate()}
+              style={{
+                flex: 1,
+                backgroundColor: colors.card,
+                borderRadius: 20,
+                paddingVertical: 14,
+                paddingHorizontal: 12,
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 3 },
+                elevation: 2,
+              }}
+            >
+              <Ionicons name="calendar-outline" size={22} color={colors.primary} />
+              <AppText style={{ fontFamily: Font.semibold, fontSize: 13, marginTop: 6, textAlign: 'center' }}>
+                {t('reminders.viewTodaySummary')}
+              </AppText>
+            </PressableScale>
           </View>
-        </Card>
+        </AnimatedIn>
 
-        <PrimarySaveButton title={t('reminders.add')} icon="add-circle" onPress={openCreate} style={{ marginBottom: 16 }} />
+        <AnimatedIn index={1}>
+          <PressableScale
+            onPress={openCreate}
+            style={{
+              alignSelf: 'stretch',
+              borderRadius: radiusPill,
+              backgroundColor: colors.primary,
+              paddingVertical: 15,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 8,
+              marginBottom: 22,
+              shadowColor: colors.primary,
+              shadowOpacity: 0.28,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="add" size={20} color={colors.primaryForeground} />
+            <AppText style={{ fontFamily: Font.semibold, fontSize: 16, color: colors.primaryForeground }}>
+              {t('reminders.add')}
+            </AppText>
+          </PressableScale>
+        </AnimatedIn>
+
+        <SectionLabel>{t('reminders.title')}</SectionLabel>
 
         {isLoading ? (
           <ActivityIndicator color={colors.primary} />
         ) : reminders?.length ? (
-          reminders.map((r) => (
-            <Card key={r.id} style={{ marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
-              <Pressable onPress={() => openEdit(r)} style={{ flex: 1 }}>
-                <Text style={{ color: colors.foreground, fontWeight: '600' }}>{r.title}</Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
-                  {repeatLabels[r.repeat ?? 'once']} · {String(r.hour).padStart(2, '0')}:{String(r.minute).padStart(2, '0')}
-                  {r.dueDate ? ` · ${formatDate(r.dueDate, 'd MMM yyyy')}` : ''}
-                </Text>
-                {r.body ? (
-                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }} numberOfLines={2}>
-                    {r.body}
-                  </Text>
-                ) : null}
-              </Pressable>
-              <Switch
-                value={r.enabled}
-                onValueChange={(v) => updateReminder.mutate({ id: r.id, patch: { enabled: v } })}
-                trackColor={{ true: colors.primary }}
-              />
-              <Pressable onPress={() => handleDelete(r)} style={{ marginLeft: 8, padding: 4 }} hitSlop={8}>
-                <Ionicons name="trash-outline" size={20} color={colors.destructive} />
-              </Pressable>
-            </Card>
+          reminders.map((r, index) => (
+            <AnimatedIn key={r.id} index={index + 2}>
+              <PressableScale onPress={() => openEdit(r)} scaleTo={0.98}>
+                <Card style={{ marginBottom: 10 }} padding={14}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 16,
+                        backgroundColor: r.enabled ? colors.accent : colors.fill,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Ionicons
+                        name="alarm-outline"
+                        size={22}
+                        color={r.enabled ? colors.primary : colors.mutedForeground}
+                      />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <AppText style={{ fontFamily: Font.semibold, fontSize: 16 }} numberOfLines={1}>
+                        {r.title}
+                      </AppText>
+                      <AppText style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+                        {repeatLabels[r.repeat ?? 'once']} · {String(r.hour).padStart(2, '0')}:
+                        {String(r.minute).padStart(2, '0')}
+                        {r.dueDate ? ` · ${formatDate(r.dueDate, 'd MMM')}` : ''}
+                      </AppText>
+                    </View>
+                    <Switch
+                      value={r.enabled}
+                      onValueChange={(v) => updateReminder.mutate({ id: r.id, patch: { enabled: v } })}
+                      trackColor={{ true: colors.primary, false: colors.fill }}
+                    />
+                    <IconActionButton
+                      variant="delete"
+                      size="sm"
+                      onPress={() => handleDelete(r)}
+                      accessibilityLabel={t('common.delete')}
+                    />
+                  </View>
+                </Card>
+              </PressableScale>
+            </AnimatedIn>
           ))
         ) : (
           <EmptyState
@@ -196,7 +282,10 @@ export default function RemindersTabScreen() {
 
         <FormModal
           visible={showForm}
-          onClose={() => { setShowForm(false); resetForm(); }}
+          onClose={() => {
+            setShowForm(false);
+            resetForm();
+          }}
           title={editing ? t('reminders.editReminder') : t('reminders.newReminder')}
           footer={
             <>
@@ -206,45 +295,76 @@ export default function RemindersTabScreen() {
                 loading={addReminder.isPending || updateReminder.isPending}
               />
               {editing ? (
-                <Button title={t('reminders.deleteReminder')} variant="destructive" onPress={() => { setShowForm(false); handleDelete(editing); }} />
+                <Button
+                  title={t('reminders.deleteReminder')}
+                  variant="destructive"
+                  onPress={() => {
+                    setShowForm(false);
+                    handleDelete(editing);
+                  }}
+                />
               ) : null}
-              <Button title={t('common.cancel')} variant="ghost" onPress={() => { setShowForm(false); resetForm(); }} />
+              <Button
+                title={t('common.cancel')}
+                variant="ghost"
+                onPress={() => {
+                  setShowForm(false);
+                  resetForm();
+                }}
+              />
             </>
           }
         >
           <Input label={t('reminders.whatToPay')} value={title} onChangeText={setTitle} placeholder={t('reminders.whatToPayPlaceholder')} />
-          <Input label={t('reminders.notificationMessage')} value={body} onChangeText={setBody} placeholder={t('reminders.notificationPlaceholder')} />
+          <Input
+            label={t('reminders.notificationMessage')}
+            value={body}
+            onChangeText={setBody}
+            placeholder={t('reminders.notificationPlaceholder')}
+          />
 
-          <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('reminders.repeat')}</Text>
+          <AppText style={{ fontFamily: Font.medium, fontSize: 14, marginBottom: 8 }}>{t('reminders.repeat')}</AppText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-            {repeatOptions.map((opt) => (
-              <Pressable
-                key={opt.id}
-                onPress={() => setRepeat(opt.id)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderRadius: radius,
-                  backgroundColor: repeat === opt.id ? colors.primary : colors.secondary,
-                  borderWidth: 1,
-                  borderColor: repeat === opt.id ? colors.primary : colors.border,
-                }}
-              >
-                <Text style={{ color: repeat === opt.id ? colors.primaryForeground : colors.foreground, fontWeight: '600' }}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
+            {repeatOptions.map((opt) => {
+              const selected = repeat === opt.id;
+              return (
+                <PressableScale
+                  key={opt.id}
+                  onPress={() => setRepeat(opt.id)}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: radiusPill,
+                    backgroundColor: selected ? colors.primary : colors.fill,
+                  }}
+                >
+                  <AppText
+                    style={{
+                      color: selected ? colors.primaryForeground : colors.foreground,
+                      fontFamily: Font.semibold,
+                    }}
+                  >
+                    {opt.label}
+                  </AppText>
+                </PressableScale>
+              );
+            })}
           </View>
 
-          {repeat !== 'daily' && (
+          {repeat !== 'daily' ? (
             <DatePickerField
-              label={repeat === 'once' ? t('reminders.paymentDate') : repeat === 'weekly' ? t('reminders.weekDayRef') : t('reminders.monthDayRef')}
+              label={
+                repeat === 'once'
+                  ? t('reminders.paymentDate')
+                  : repeat === 'weekly'
+                    ? t('reminders.weekDayRef')
+                    : t('reminders.monthDayRef')
+              }
               value={dueDate}
               onChange={setDueDate}
               minimumDate={repeat === 'once' ? new Date() : undefined}
             />
-          )}
+          ) : null}
 
           <TimePickerField label={t('reminders.alertTime')} value={time} onChange={setTime} />
         </FormModal>

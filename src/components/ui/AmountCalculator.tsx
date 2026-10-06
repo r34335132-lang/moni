@@ -1,15 +1,19 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Switch, useWindowDimensions } from 'react-native';
+import { View, TouchableOpacity, Switch, useWindowDimensions } from 'react-native';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useLanguage } from '@/src/providers/LanguageProvider';
 import { applyIva, evaluateExpression, parseDecimalInput } from '@/src/core/utils/calculator';
 import { formatCurrency } from '@/src/core/utils/format';
+import { AppText, Font } from '@/src/components/ui/AppText';
+import { MoneyDisplay } from '@/src/components/ui/MoneyDisplay';
 
 interface AmountCalculatorProps {
   value: number;
   onChange: (amount: number) => void;
   currency?: string;
   showIva?: boolean;
+  /** Visual tone for the hero amount */
+  tone?: 'neutral' | 'income' | 'expense' | 'primary';
 }
 
 const KEYS = [
@@ -22,22 +26,17 @@ const KEYS = [
 
 const COLS = 4;
 const GAP = 8;
-const SCREEN_PAD = 16;
-const CARD_PAD = 16;
+const SCREEN_PAD = 20;
+const CARD_PAD = 14;
 
-/** Colores fijos — NativeWind borra estilos en Pressable */
-const KEY_BG = '#F1F5F9';
-const KEY_OP_BG = '#DCFCE7';
-const KEY_BORDER = '#CBD5E1';
-const KEY_OP_BORDER = '#86EFAC';
-const KEY_TEXT = '#0F172A';
-const KEY_OP_TEXT = '#16A34A';
-const DISPLAY_BG = '#F1F5F9';
-const CARD_BG = '#FFFFFF';
-const CARD_BORDER = '#E2E8F0';
-
-export function AmountCalculator({ value, onChange, currency = 'MXN', showIva = true }: AmountCalculatorProps) {
-  const { colors } = useTheme();
+export function AmountCalculator({
+  value,
+  onChange,
+  currency = 'MXN',
+  showIva = true,
+  tone = 'primary',
+}: AmountCalculatorProps) {
+  const { colors, radius, isDark } = useTheme();
   const { t } = useLanguage();
   const { width: screenW } = useWindowDimensions();
   const [expression, setExpression] = useState(value > 0 ? String(value) : '');
@@ -47,7 +46,7 @@ export function AmountCalculator({ value, onChange, currency = 'MXN', showIva = 
 
   const gridW = screenW - SCREEN_PAD * 2 - CARD_PAD * 2;
   const keyW = Math.floor((gridW - GAP * (COLS - 1)) / COLS);
-  const keyH = Math.max(54, Math.min(72, keyW));
+  const keyH = Math.max(50, Math.min(64, keyW));
 
   const baseAmount = useMemo(() => {
     const evaluated = evaluateExpression(expression);
@@ -62,17 +61,27 @@ export function AmountCalculator({ value, onChange, currency = 'MXN', showIva = 
     onChangeRef.current(amount);
   }, []);
 
-  const updateExpression = useCallback((next: string) => {
-    setExpression(next);
-    const evaluated = evaluateExpression(next);
-    const base = evaluated ?? (parseFloat(next.replace(/[^0-9.]/g, '')) || 0);
-    const total = showIva && includeIva ? applyIva(base, true).total : base;
-    emitChange(total > 0 ? total : 0);
-  }, [emitChange, includeIva, showIva]);
+  const updateExpression = useCallback(
+    (next: string) => {
+      setExpression(next);
+      const evaluated = evaluateExpression(next);
+      const base = evaluated ?? (parseFloat(next.replace(/[^0-9.]/g, '')) || 0);
+      const total = showIva && includeIva ? applyIva(base, true).total : base;
+      emitChange(total > 0 ? total : 0);
+    },
+    [emitChange, includeIva, showIva],
+  );
 
   const pressKey = (key: string) => {
-    if (key === 'C') { setExpression(''); emitChange(0); return; }
-    if (key === '⌫') { updateExpression(expression.slice(0, -1)); return; }
+    if (key === 'C') {
+      setExpression('');
+      emitChange(0);
+      return;
+    }
+    if (key === '⌫') {
+      updateExpression(expression.slice(0, -1));
+      return;
+    }
     if (key === '=') {
       const result = evaluateExpression(expression);
       if (result !== null) {
@@ -97,8 +106,13 @@ export function AmountCalculator({ value, onChange, currency = 'MXN', showIva = 
       updateExpression(expression ? `${expression}.` : '0.');
       return;
     }
-    if (key === '00') { updateExpression(parseDecimalInput(expression + '00')); return; }
-    if (/\d/.test(key)) { updateExpression(parseDecimalInput(expression + key)); }
+    if (key === '00') {
+      updateExpression(parseDecimalInput(expression + '00'));
+      return;
+    }
+    if (/\d/.test(key)) {
+      updateExpression(parseDecimalInput(expression + key));
+    }
   };
 
   const handleIvaToggle = (v: boolean) => {
@@ -110,69 +124,60 @@ export function AmountCalculator({ value, onChange, currency = 'MXN', showIva = 
 
   return (
     <View style={{ width: '100%', marginBottom: 16 }}>
-      <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 10 }}>Monto</Text>
+      <AppText style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: Font.semibold, marginBottom: 10 }}>
+        {t('common.amount')}
+      </AppText>
+
+      {/* Live hero amount — never clipped */}
+      <MoneyDisplay
+        amount={breakdown.total || 0}
+        currency={currency}
+        tone={tone}
+        size="xl"
+        label={expression && expression !== String(breakdown.total) ? expression : undefined}
+        style={{ marginBottom: 12 }}
+      />
 
       <View
         style={{
           width: '100%',
-          backgroundColor: CARD_BG,
-          borderRadius: 16,
+          backgroundColor: colors.card,
+          borderRadius: radius,
           padding: CARD_PAD,
-          borderWidth: 1,
-          borderColor: CARD_BORDER,
+          shadowColor: '#000',
+          shadowOpacity: isDark ? 0.28 : 0.06,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 3,
         }}
       >
-        {/* Pantalla */}
-        <View
-          style={{
-            width: gridW,
-            alignSelf: 'center',
-            backgroundColor: DISPLAY_BG,
-            borderRadius: 14,
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-            marginBottom: 14,
-            minHeight: 100,
-            justifyContent: 'center',
-          }}
-        >
-          <Text style={{ color: '#64748B', fontSize: 17, textAlign: 'right', marginBottom: 6 }} numberOfLines={2}>
-            {expression || '0'}
-          </Text>
-          <Text style={{ color: '#0F172A', fontSize: 40, fontWeight: '800', textAlign: 'right' }} adjustsFontSizeToFit numberOfLines={1}>
-            {formatCurrency(breakdown.total || 0, currency)}
-          </Text>
-        </View>
-
-        {showIva && (
+        {showIva ? (
           <View
             style={{
-              width: gridW,
-              alignSelf: 'center',
+              width: '100%',
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: DISPLAY_BG,
-              borderRadius: 12,
+              backgroundColor: colors.fill,
+              borderRadius: 16,
               padding: 14,
               marginBottom: 14,
             }}
           >
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={{ color: '#0F172A', fontWeight: '700', fontSize: 15 }}>{t('common.addIva')}</Text>
+              <AppText style={{ fontFamily: Font.semibold, fontSize: 15 }}>{t('common.addIva')}</AppText>
               {includeIva && baseAmount > 0 ? (
-                <Text style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>
+                <AppText style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 4 }}>
                   {t('common.subtotalIva', {
                     subtotal: formatCurrency(breakdown.subtotal, currency),
                     iva: formatCurrency(breakdown.iva, currency),
                   })}
-                </Text>
+                </AppText>
               ) : null}
             </View>
-            <Switch value={includeIva} onValueChange={handleIvaToggle} trackColor={{ true: '#22C55E' }} />
+            <Switch value={includeIva} onValueChange={handleIvaToggle} trackColor={{ true: colors.primary }} />
           </View>
-        )}
+        ) : null}
 
-        {/* Teclado — ancho fijo en px para llenar todo el card */}
         <View style={{ width: gridW, alignSelf: 'center' }}>
           {KEYS.map((row, ri) => (
             <View
@@ -186,7 +191,7 @@ export function AmountCalculator({ value, onChange, currency = 'MXN', showIva = 
               {row.map((key, ci) => (
                 <TouchableOpacity
                   key={key}
-                  activeOpacity={0.65}
+                  activeOpacity={0.7}
                   onPress={() => pressKey(key)}
                   style={{
                     width: keyW,
@@ -198,17 +203,22 @@ export function AmountCalculator({ value, onChange, currency = 'MXN', showIva = 
                     style={{
                       width: keyW,
                       height: keyH,
-                      borderRadius: 14,
+                      borderRadius: 18,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: isOp(key) ? KEY_OP_BG : KEY_BG,
-                      borderWidth: 1.5,
-                      borderColor: isOp(key) ? KEY_OP_BORDER : KEY_BORDER,
+                      backgroundColor: isOp(key) ? colors.accent : colors.fill,
                     }}
                   >
-                    <Text style={{ fontSize: keyH >= 58 ? 26 : 22, fontWeight: '800', color: isOp(key) ? KEY_OP_TEXT : KEY_TEXT }}>
+                    <AppText
+                      style={{
+                        fontSize: keyH >= 56 ? 22 : 18,
+                        fontFamily: Font.bold,
+                        color: isOp(key) ? colors.primary : colors.foreground,
+                        lineHeight: keyH >= 56 ? 26 : 22,
+                      }}
+                    >
                       {key}
-                    </Text>
+                    </AppText>
                   </View>
                 </TouchableOpacity>
               ))}

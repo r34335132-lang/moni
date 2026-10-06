@@ -1,9 +1,11 @@
 import React, { useRef } from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, Alert, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { TransactionRow } from '@/src/components/TransactionRow';
+import { SwipeActionPill } from '@/src/components/ui/IconActionButton';
 import { useLanguage } from '@/src/providers/LanguageProvider';
+import { useTheme } from '@/src/hooks/useTheme';
 import type { Transaction } from '@/src/core/types/entities';
 
 interface SwipeableTransactionRowProps {
@@ -11,65 +13,76 @@ interface SwipeableTransactionRowProps {
   currency?: string;
   onEdit: () => void;
   onDelete: () => void;
+  isLast?: boolean;
+  otherMonthLabel?: string | null;
 }
 
-export function SwipeableTransactionRow({ transaction, currency, onEdit, onDelete }: SwipeableTransactionRowProps) {
+export function SwipeableTransactionRow({
+  transaction,
+  currency,
+  onEdit,
+  onDelete,
+  isLast,
+  otherMonthLabel,
+}: SwipeableTransactionRowProps) {
   const swipeRef = useRef<Swipeable>(null);
   const { t } = useLanguage();
+  const { colors } = useTheme();
 
   const confirmDelete = () => {
-    Alert.alert(
-      t('smartFill.deleteMovement'),
-      t('smartFill.deleteConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel', onPress: () => swipeRef.current?.close() },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => {
-            swipeRef.current?.close();
-            onDelete();
-          },
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+    Alert.alert(t('smartFill.deleteMovement'), t('smartFill.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel', onPress: () => swipeRef.current?.close() },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => {
+          swipeRef.current?.close();
+          onDelete();
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const renderActions = () => (
-    <View style={{ flexDirection: 'row', marginBottom: 8, marginLeft: 8 }}>
-      <Pressable
-        onPress={() => { swipeRef.current?.close(); onEdit(); }}
-        style={{
-          width: 72,
-          backgroundColor: '#3B82F6',
-          borderRadius: 12,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 6,
+    <View style={{ flexDirection: 'row', alignItems: 'stretch', backgroundColor: colors.card }}>
+      <SwipeActionPill
+        variant="edit"
+        label={t('smartFill.edit')}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+          swipeRef.current?.close();
+          onEdit();
         }}
-      >
-        <Ionicons name="pencil" size={20} color="#FFFFFF" />
-        <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700', marginTop: 4 }}>{t('smartFill.edit')}</Text>
-      </Pressable>
-      <Pressable
+      />
+      <SwipeActionPill
+        variant="delete"
+        label={t('smartFill.delete')}
         onPress={confirmDelete}
-        style={{
-          width: 72,
-          backgroundColor: '#DC2626',
-          borderRadius: 12,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name="trash" size={20} color="#FFFFFF" />
-        <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700', marginTop: 4 }}>{t('smartFill.delete')}</Text>
-      </Pressable>
+      />
     </View>
   );
 
   return (
-    <Swipeable ref={swipeRef} renderRightActions={renderActions} overshootRight={false}>
-      <TransactionRow transaction={transaction} currency={currency} onPress={onEdit} />
-    </Swipeable>
+    <View
+      style={{
+        borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+        borderBottomColor: colors.separator,
+        backgroundColor: colors.card,
+        overflow: 'hidden',
+      }}
+    >
+      <Swipeable
+        ref={swipeRef}
+        renderRightActions={renderActions}
+        overshootRight={false}
+        friction={1.6}
+        rightThreshold={36}
+      >
+        <View style={{ backgroundColor: colors.card }}>
+          <TransactionRow transaction={transaction} currency={currency} otherMonthLabel={otherMonthLabel} />
+        </View>
+      </Swipeable>
+    </View>
   );
 }

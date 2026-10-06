@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useLanguage } from '@/src/providers/LanguageProvider';
-import { formatCurrency } from '@/src/core/utils/format';
+import { AppText, Font } from '@/src/components/ui/AppText';
+import { MoneyDisplay } from '@/src/components/ui/MoneyDisplay';
 
 interface MonthFinanceSummaryProps {
   income: number;
@@ -19,7 +20,7 @@ export function MonthFinanceSummary({
   incomeCount,
   expenseCount,
 }: MonthFinanceSummaryProps) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, isDark } = useTheme();
   const { t } = useLanguage();
   const balance = income - expenses;
 
@@ -29,73 +30,52 @@ export function MonthFinanceSummary({
         backgroundColor: colors.card,
         borderRadius: radius,
         padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
+        marginBottom: 14,
+        shadowColor: '#000',
+        shadowOpacity: isDark ? 0.28 : 0.06,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
       }}
     >
-      <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '700', marginBottom: 12 }}>
+      <AppText
+        variant="label"
+        style={{ color: colors.mutedForeground, textTransform: 'uppercase', marginBottom: 12 }}
+      >
         {t('dashboard.monthSummary')}
-      </Text>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: '#ECFDF5',
-            borderRadius: 12,
-            padding: 12,
-            borderWidth: 1,
-            borderColor: '#86EFAC',
-          }}
-        >
-          <Text style={{ color: '#166534', fontSize: 12, fontWeight: '600' }}>{t('dashboard.income')}</Text>
-          <Text style={{ color: '#15803D', fontSize: 18, fontWeight: '800', marginTop: 4 }}>
-            +{formatCurrency(income, currency)}
-          </Text>
-          {incomeCount !== undefined ? (
-            <Text style={{ color: '#166534', fontSize: 11, marginTop: 2 }}>{t('dashboard.movementsCount', { count: incomeCount })}</Text>
-          ) : null}
+      </AppText>
+
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="caption" style={{ color: colors.mutedForeground, fontFamily: Font.medium, marginBottom: 6 }}>
+            {t('dashboard.income')}
+            {incomeCount !== undefined ? ` · ${incomeCount}` : ''}
+          </AppText>
+          <MoneyDisplay amount={income} currency={currency} tone="income" size="md" align="left" />
         </View>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: '#FEF2F2',
-            borderRadius: 12,
-            padding: 12,
-            borderWidth: 1,
-            borderColor: '#FECACA',
-          }}
-        >
-          <Text style={{ color: '#991B1B', fontSize: 12, fontWeight: '600' }}>{t('dashboard.expenses')}</Text>
-          <Text style={{ color: '#DC2626', fontSize: 18, fontWeight: '800', marginTop: 4 }}>
-            -{formatCurrency(expenses, currency)}
-          </Text>
-          {expenseCount !== undefined ? (
-            <Text style={{ color: '#991B1B', fontSize: 11, marginTop: 2 }}>{t('dashboard.movementsCount', { count: expenseCount })}</Text>
-          ) : null}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText variant="caption" style={{ color: colors.mutedForeground, fontFamily: Font.medium, marginBottom: 6 }}>
+            {t('dashboard.expenses')}
+            {expenseCount !== undefined ? ` · ${expenseCount}` : ''}
+          </AppText>
+          <MoneyDisplay amount={expenses} currency={currency} tone="expense" size="md" align="left" />
         </View>
       </View>
+
       <View
         style={{
-          marginTop: 10,
-          paddingTop: 10,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          paddingTop: 14,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.separator,
         }}
       >
-        <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>{t('dashboard.monthBalance')}</Text>
-        <Text
-          style={{
-            color: balance >= 0 ? '#15803D' : '#DC2626',
-            fontSize: 16,
-            fontWeight: '800',
-          }}
-        >
-          {balance >= 0 ? '+' : ''}{formatCurrency(balance, currency)}
-        </Text>
+        <MoneyDisplay
+          amount={balance}
+          currency={currency}
+          tone={balance >= 0 ? 'income' : 'expense'}
+          size="lg"
+          label={t('dashboard.monthBalance')}
+        />
       </View>
     </View>
   );

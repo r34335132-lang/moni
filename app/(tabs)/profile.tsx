@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, Pressable } from 'react-native';
+import { View, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/providers/AuthProvider';
@@ -11,6 +11,10 @@ import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Input } from '@/src/components/ui/Input';
 import { Button } from '@/src/components/ui/Button';
+import { SettingsGroup, SettingsRow, SectionLabel } from '@/src/components/ui/Card';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AnimatedIn } from '@/src/components/AnimatedIn';
+import { AppText, Font } from '@/src/components/ui/AppText';
 import { getErrorMessage } from '@/src/core/utils/errors';
 import type { AppLocale } from '@/src/core/i18n/types';
 
@@ -22,7 +26,7 @@ const LOCALES: { id: AppLocale; label: string }[] = [
 
 export default function ProfileScreen() {
   const { profile, user, signOut, deleteAccount, refreshProfile, isPremium } = useAuth();
-  const { colors, radius } = useTheme();
+  const { colors, radiusPill, isDark } = useTheme();
   const { t, locale, setLocale } = useLanguage();
   const premiumReady = subscriptionService.isConfigured();
   const [name, setName] = useState(profile?.full_name ?? '');
@@ -44,26 +48,29 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      t('profile.deleteAccount'),
-      t('profile.deleteAccountConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteAccount();
-              router.replace('/(auth)/login');
-            } catch (e) {
-              Alert.alert(t('common.error'), getErrorMessage(e));
-            }
-          },
+    Alert.alert(t('profile.deleteAccount'), t('profile.deleteAccountConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteAccount();
+            router.replace('/(auth)/login');
+          } catch (e) {
+            Alert.alert(t('common.error'), getErrorMessage(e));
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
+
+  const initials = (profile?.full_name || profile?.email || 'M')
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   const menuItems = [
     { icon: 'list-outline' as const, label: t('profile.movements'), route: '/(tabs)/transactions' },
@@ -71,86 +78,204 @@ export default function ProfileScreen() {
     { icon: 'people-outline' as const, label: t('profile.beneficiaries'), route: '/beneficiaries' },
     { icon: 'wallet-outline' as const, label: t('profile.accounts'), route: '/accounts' },
     { icon: 'grid-outline' as const, label: t('profile.categories'), route: '/categories' },
-    { icon: 'alarm-outline' as const, label: t('profile.reminders'), route: '/(tabs)/reminders' },
+    { icon: 'flag-outline' as const, label: t('profile.savingsGoals'), route: '/savings-goals' },
+  ];
+
+  const moreItems = [
+    { icon: 'logo-whatsapp' as const, label: t('profile.whatsapp'), route: '/whatsapp' },
     { icon: 'game-controller-outline' as const, label: t('profile.minigames'), route: '/minigame' },
     { icon: 'business-outline' as const, label: t('profile.banks'), route: '/bank' },
-    { icon: 'flag-outline' as const, label: t('profile.savingsGoals'), route: '/savings-goals' },
     {
       icon: 'diamond-outline' as const,
-      label: isPremium ? t('profile.premiumActive') : premiumReady ? t('profile.premium') : t('profile.premiumSoon'),
+      label: isPremium
+        ? t('profile.premiumActive')
+        : premiumReady
+          ? t('profile.premium')
+          : t('profile.premiumSoon'),
       route: '/subscription',
     },
   ];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title={t('profile.title')} subtitle={t('profile.subtitle')} />
+      <ScreenHeader title={t('profile.title')} />
       <ScreenContainer>
-        <Input label={t('profile.name')} value={name} onChangeText={setName} />
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('profile.currency')}</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {CURRENCIES.map((c) => (
-            <Pressable
-              key={c}
-              onPress={() => setCurrency(c)}
+        <AnimatedIn>
+          <View
+            style={{
+              alignItems: 'center',
+              marginBottom: 22,
+              backgroundColor: colors.card,
+              borderRadius: 28,
+              paddingVertical: 24,
+              paddingHorizontal: 20,
+              shadowColor: '#000',
+              shadowOpacity: isDark ? 0.28 : 0.06,
+              shadowRadius: 14,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 3,
+            }}
+          >
+            <View
               style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: radius,
-                backgroundColor: currency === c ? colors.primary : colors.secondary,
-                borderWidth: 1,
-                borderColor: currency === c ? colors.primary : colors.border,
+                width: 72,
+                height: 72,
+                borderRadius: 36,
+                backgroundColor: colors.accent,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
               }}
             >
-              <Text style={{ color: currency === c ? colors.primaryForeground : colors.foreground, fontWeight: '500' }}>{c}</Text>
-            </Pressable>
-          ))}
-        </View>
+              <AppText style={{ fontFamily: Font.bold, fontSize: 26, color: colors.primary }}>{initials}</AppText>
+            </View>
+            <AppText style={{ fontFamily: Font.bold, fontSize: 22, letterSpacing: -0.3 }}>
+              {profile?.full_name || t('profile.name')}
+            </AppText>
+            <AppText style={{ color: colors.mutedForeground, fontSize: 14, marginTop: 4 }}>
+              {profile?.email}
+            </AppText>
+            {isPremium ? (
+              <View
+                style={{
+                  marginTop: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: colors.accent,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: radiusPill,
+                }}
+              >
+                <Ionicons name="diamond" size={14} color={colors.primary} />
+                <AppText style={{ color: colors.accentForeground, fontFamily: Font.semibold, fontSize: 13 }}>
+                  {t('profile.premiumActive')}
+                </AppText>
+              </View>
+            ) : null}
+          </View>
+        </AnimatedIn>
 
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('profile.language')}</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {LOCALES.map((opt) => (
-            <Pressable
-              key={opt.id}
-              onPress={() => setLocale(opt.id)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: radius,
-                backgroundColor: locale === opt.id ? colors.primary : colors.secondary,
-                borderWidth: 1,
-                borderColor: locale === opt.id ? colors.primary : colors.border,
-              }}
-            >
-              <Text style={{ color: locale === opt.id ? colors.primaryForeground : colors.foreground, fontWeight: '500' }}>
-                {opt.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <SectionLabel>{t('profile.subtitle')}</SectionLabel>
+        <AnimatedIn index={1}>
+          <SettingsGroup>
+          <View style={{ padding: 16 }}>
+            <Input label={t('profile.name')} value={name} onChangeText={setName} />
+            <AppText style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: Font.medium, marginBottom: 8 }}>
+              {t('profile.currency')}
+            </AppText>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {CURRENCIES.map((c) => {
+                const selected = currency === c;
+                return (
+                  <PressableScale
+                    key={c}
+                    onPress={() => setCurrency(c)}
+                    scaleTo={0.96}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: radiusPill,
+                      backgroundColor: selected ? colors.primary : colors.fill,
+                    }}
+                  >
+                    <AppText
+                      style={{
+                        color: selected ? colors.primaryForeground : colors.foreground,
+                        fontFamily: Font.semibold,
+                        fontSize: 14,
+                      }}
+                    >
+                      {c}
+                    </AppText>
+                  </PressableScale>
+                );
+              })}
+            </View>
 
-        <Button title={t('profile.saveChanges')} onPress={handleSave} loading={saving} />
+            <AppText style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: Font.medium, marginBottom: 8 }}>
+              {t('profile.language')}
+            </AppText>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              {LOCALES.map((opt) => {
+                const selected = locale === opt.id;
+                return (
+                  <PressableScale
+                    key={opt.id}
+                    onPress={() => setLocale(opt.id)}
+                    scaleTo={0.96}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: radiusPill,
+                      backgroundColor: selected ? colors.primary : colors.fill,
+                    }}
+                  >
+                    <AppText
+                      style={{
+                        color: selected ? colors.primaryForeground : colors.foreground,
+                        fontFamily: Font.semibold,
+                        fontSize: 14,
+                      }}
+                    >
+                      {opt.label}
+                    </AppText>
+                  </PressableScale>
+                );
+              })}
+            </View>
+            <Button title={t('profile.saveChanges')} onPress={handleSave} loading={saving} />
+          </View>
+        </SettingsGroup>
+        </AnimatedIn>
 
-        <View style={{ marginTop: 24 }}>
-          {menuItems.map((item) => (
-            <Pressable
-              key={item.route}
-              onPress={() => router.push(item.route as never)}
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
-            >
-              <Ionicons name={item.icon} size={22} color={colors.foreground} />
-              <Text style={{ color: colors.foreground, fontSize: 16, marginLeft: 14, flex: 1 }}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
-            </Pressable>
-          ))}
-        </View>
+        <SectionLabel>{t('profile.movements')}</SectionLabel>
+        <AnimatedIn index={2}>
+          <SettingsGroup>
+            {menuItems.map((item, i) => (
+              <SettingsRow
+                key={item.route}
+                icon={item.icon}
+                label={item.label}
+                onPress={() => router.push(item.route as never)}
+                isLast={i === menuItems.length - 1}
+              />
+            ))}
+          </SettingsGroup>
+        </AnimatedIn>
 
-        <Button title={t('profile.signOut')} variant="secondary" onPress={signOut} style={{ marginTop: 24 }} />
-        <Button title={t('profile.deleteAccount')} variant="destructive" onPress={handleDeleteAccount} style={{ marginTop: 12 }} />
+        <SectionLabel>{t('profile.premium')}</SectionLabel>
+        <AnimatedIn index={3}>
+          <SettingsGroup>
+            {moreItems.map((item, i) => (
+              <SettingsRow
+                key={item.route}
+                icon={item.icon}
+                label={item.label}
+                onPress={() => router.push(item.route as never)}
+                isLast={i === moreItems.length - 1}
+              />
+            ))}
+          </SettingsGroup>
+        </AnimatedIn>
 
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center', marginTop: 24 }}>
-          {profile?.email} · MONI v1.0.0
-        </Text>
+        <AnimatedIn index={4}>
+          <SettingsGroup>
+            <SettingsRow icon="log-out-outline" label={t('profile.signOut')} onPress={signOut} />
+            <SettingsRow
+              icon="trash-outline"
+              label={t('profile.deleteAccount')}
+              onPress={handleDeleteAccount}
+              destructive
+              isLast
+            />
+          </SettingsGroup>
+        </AnimatedIn>
+
+        <AppText style={{ color: colors.mutedForeground, fontSize: 12, textAlign: 'center', marginBottom: 24, marginTop: 8 }}>
+          {t('brand.name')} · v1.0.0
+        </AppText>
       </ScreenContainer>
     </View>
   );

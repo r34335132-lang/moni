@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Alert, Pressable, Image, Platform } from 'react-native';
+import { View, Alert, Image, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,16 +23,20 @@ import { Input } from '@/src/components/ui/Input';
 import { AmountCalculator } from '@/src/components/ui/AmountCalculator';
 import { PrimarySaveButton } from '@/src/components/ui/PrimarySaveButton';
 import { DatePickerField } from '@/src/components/ui/DatePickerField';
+import { FormHero, FormSection, FormChip, FormTypeToggle } from '@/src/components/ui/FormChrome';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AppText, Font } from '@/src/components/ui/AppText';
 import { formatCurrency } from '@/src/core/utils/format';
 import { getErrorMessage } from '@/src/core/utils/errors';
 import { transactionService } from '@/src/services/transactionService';
 
 export default function AddManualTransactionScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { colors, radius } = useTheme();
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
+  const currency = profile?.currency ?? 'MXN';
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -45,7 +49,13 @@ export default function AddManualTransactionScreen() {
   const { data: beneficiaries } = useBeneficiaries();
   const [beneficiaryId, setBeneficiaryId] = useState<string | null>(null);
 
-  const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm<TransactionInput>({
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<TransactionInput>({
     resolver: zodResolver(transactionSchema) as Resolver<TransactionInput>,
     defaultValues: {
       type: 'expense',
@@ -60,8 +70,14 @@ export default function AddManualTransactionScreen() {
   });
 
   const amount = watch('amount');
+  const accountId = watch('account_id');
+  const categoryId = watch('category_id');
   const isSaving = createTx.isPending || updateTx.isPending;
-  const saveLabel = id ? t('transactionForms.updateMovement') : (type === 'expense' ? t('transactionForms.saveExpense') : t('transactionForms.saveIncome'));
+  const saveLabel = id
+    ? t('transactionForms.updateMovement')
+    : type === 'expense'
+      ? t('transactionForms.saveExpense')
+      : t('transactionForms.saveIncome');
 
   useEffect(() => {
     if (accounts?.length && !existing) {
@@ -111,30 +127,33 @@ export default function AddManualTransactionScreen() {
     if (!result.canceled) setPhotoUri(result.assets[0].uri);
   };
 
-  const onSubmit = useCallback(async (data: TransactionInput) => {
-    const payload = { ...data, type, beneficiary_id: type === 'expense' ? beneficiaryId : null };
-    try {
-      if (id) {
-        await updateTx.mutateAsync({ id, input: payload });
-        router.back();
-        return;
-      }
-
-      const tx = await createTx.mutateAsync(payload);
-      router.back();
-
-      if (photoUri && user) {
-        try {
-          const uploaded = await transactionService.uploadPhoto(user.id, photoUri);
-          await transactionService.addPhoto(user.id, tx.id, uploaded.path, uploaded.url);
-        } catch {
-          Alert.alert(t('common.notice'), t('transactionForms.photoAttachFailed'));
+  const onSubmit = useCallback(
+    async (data: TransactionInput) => {
+      const payload = { ...data, type, beneficiary_id: type === 'expense' ? beneficiaryId : null };
+      try {
+        if (id) {
+          await updateTx.mutateAsync({ id, input: payload });
+          router.back();
+          return;
         }
+
+        const tx = await createTx.mutateAsync(payload);
+        router.back();
+
+        if (photoUri && user) {
+          try {
+            const uploaded = await transactionService.uploadPhoto(user.id, photoUri);
+            await transactionService.addPhoto(user.id, tx.id, uploaded.path, uploaded.url);
+          } catch {
+            Alert.alert(t('common.notice'), t('transactionForms.photoAttachFailed'));
+          }
+        }
+      } catch (e) {
+        Alert.alert(t('common.error'), getErrorMessage(e));
       }
-    } catch (e) {
-      Alert.alert(t('common.error'), getErrorMessage(e));
-    }
-  }, [id, type, beneficiaryId, updateTx, createTx, photoUri, user, t]);
+    },
+    [id, type, beneficiaryId, updateTx, createTx, photoUri, user, t],
+  );
 
   const handleDelete = () => {
     if (!id) return;
@@ -159,165 +178,181 @@ export default function AddManualTransactionScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title={id ? t('transactionForms.editTitle') : t('transactionForms.addManual')} showBack />
+      <ScreenHeader
+        title={id ? t('transactionForms.editTitle') : t('transactionForms.addManual')}
+        showBack
+      />
 
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom, 24) + 40 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: Math.max(insets.bottom, 24) + 40 }}
         keyboardShouldPersistTaps="handled"
         extraKeyboardSpace={Platform.OS === 'ios' ? 40 : 80}
       >
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-          {(['expense', 'income'] as const).map((txType) => (
-            <Pressable
-              key={txType}
-              onPress={() => { setType(txType); setValue('type', txType); }}
-              style={{
-                flex: 1,
-                padding: 14,
-                borderRadius: radius,
-                backgroundColor: type === txType ? colors.primary : colors.secondary,
-                alignItems: 'center',
-                borderWidth: 2,
-                borderColor: type === txType ? colors.primary : colors.border,
-              }}
-            >
-              <Text style={{ color: type === txType ? colors.primaryForeground : colors.foreground, fontWeight: '700', fontSize: 16 }}>
-                {txType === 'expense' ? t('common.expense') : t('common.income')}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <DatePickerField label={t('transactionForms.transactionDate')} value={selectedDate} onChange={handleDateChange} maximumDate={new Date()} />
-
-        <Controller
-          control={control}
-          name="description"
-          render={({ field: { onChange, value } }) => (
-            <Input
-              label={type === 'income' ? t('transactionForms.descriptionIncome') : t('transactionForms.descriptionExpense')}
-              value={value ?? ''}
-              onChangeText={onChange}
-              placeholder={
-                type === 'income'
-                  ? t('transactionForms.descriptionIncomePlaceholder')
-                  : t('transactionForms.descriptionExpensePlaceholder')
-              }
-              multiline
-            />
-          )}
+        <FormHero
+          icon={type === 'expense' ? 'remove-circle' : 'add-circle'}
+          title={id ? t('transactionForms.editTitle') : type === 'expense' ? t('common.expense') : t('common.income')}
+          subtitle={t('transactionForms.addManual')}
+          tint={type === 'expense' ? colors.destructive : colors.primary}
         />
 
-        {type === 'expense' && (
-          <Controller control={control} name="merchant" render={({ field: { onChange, value } }) => (
-            <Input label={t('transactionForms.merchantOptional')} value={value ?? ''} onChangeText={onChange} placeholder={t('transactionForms.merchantShortPlaceholder')} />
-          )} />
-        )}
+        <FormTypeToggle
+          value={type}
+          onChange={(v) => {
+            setType(v as 'income' | 'expense');
+            setValue('type', v as 'income' | 'expense');
+          }}
+          leftLabel={t('common.expense')}
+          rightLabel={t('common.income')}
+        />
 
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('transactionForms.account')}</Text>
-        {accounts?.length ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-            {accounts.map((acc) => (
-              <Controller key={acc.id} control={control} name="account_id" render={({ field: { onChange, value } }) => (
-                <Pressable
-                  onPress={() => onChange(acc.id)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    borderRadius: radius,
-                    backgroundColor: value === acc.id ? colors.primary : colors.secondary,
-                    borderWidth: 1,
-                    borderColor: value === acc.id ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ color: value === acc.id ? colors.primaryForeground : colors.foreground, fontWeight: '500' }}>{acc.name}</Text>
-                </Pressable>
-              )} />
+        <FormSection>
+          <DatePickerField
+            label={t('transactionForms.transactionDate')}
+            value={selectedDate}
+            onChange={handleDateChange}
+            maximumDate={new Date()}
+          />
+
+          <Controller
+            control={control}
+            name="description"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                label={
+                  type === 'income'
+                    ? t('transactionForms.descriptionIncome')
+                    : t('transactionForms.descriptionExpense')
+                }
+                value={value ?? ''}
+                onChangeText={onChange}
+                placeholder={
+                  type === 'income'
+                    ? t('transactionForms.descriptionIncomePlaceholder')
+                    : t('transactionForms.descriptionExpensePlaceholder')
+                }
+                multiline
+              />
+            )}
+          />
+
+          {type === 'expense' ? (
+            <Controller
+              control={control}
+              name="merchant"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label={t('transactionForms.merchantOptional')}
+                  value={value ?? ''}
+                  onChangeText={onChange}
+                  placeholder={t('transactionForms.merchantShortPlaceholder')}
+                />
+              )}
+            />
+          ) : null}
+        </FormSection>
+
+        <FormSection label={t('transactionForms.account')}>
+          {accounts?.length ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {accounts.map((acc) => (
+                <FormChip
+                  key={acc.id}
+                  label={acc.name}
+                  selected={accountId === acc.id}
+                  onPress={() => setValue('account_id', acc.id)}
+                  icon="wallet-outline"
+                />
+              ))}
+            </View>
+          ) : (
+            <AppText style={{ color: colors.destructive }}>{t('transactionForms.noAccounts')}</AppText>
+          )}
+        </FormSection>
+
+        <FormSection label={`${t('transactionForms.category')}${categories?.length ? ` (${categories.length})` : ''}`}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {categories?.map((cat) => (
+              <FormChip
+                key={cat.id}
+                label={cat.name}
+                selected={categoryId === cat.id}
+                onPress={() => setValue('category_id', cat.id)}
+                color={cat.color}
+                icon={getCategoryIcon(cat.icon)}
+              />
             ))}
           </View>
-        ) : (
-          <Text style={{ color: colors.destructive, marginBottom: 14 }}>{t('transactionForms.noAccounts')}</Text>
-        )}
+        </FormSection>
 
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>
-          {t('transactionForms.category')} {categories?.length ? `(${categories.length})` : ''}
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {categories?.map((cat) => (
-            <Controller key={cat.id} control={control} name="category_id" render={({ field: { onChange, value } }) => (
-              <Pressable
-                onPress={() => onChange(cat.id)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderRadius: radius,
-                  backgroundColor: value === cat.id ? `${cat.color}30` : colors.secondary,
-                  borderWidth: 1.5,
-                  borderColor: value === cat.id ? cat.color : colors.border,
-                  minWidth: '30%',
-                }}
-              >
-                <Ionicons name={getCategoryIcon(cat.icon)} size={16} color={cat.color} />
-                <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: value === cat.id ? '600' : '400' }} numberOfLines={1}>
-                  {cat.name}
-                </Text>
-              </Pressable>
-            )} />
-          ))}
-        </View>
-
-        {type === 'expense' && (
-          <>
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('transactionForms.beneficiaryOptional')}</Text>
+        {type === 'expense' ? (
+          <FormSection label={t('transactionForms.beneficiaryOptional')}>
             {beneficiaries?.length ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                <Pressable
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <FormChip
+                  label={t('transactionForms.none')}
+                  selected={!beneficiaryId}
                   onPress={() => setBeneficiaryId(null)}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    borderRadius: radius,
-                    backgroundColor: !beneficiaryId ? colors.primary : colors.secondary,
-                    borderWidth: 1,
-                    borderColor: !beneficiaryId ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ color: !beneficiaryId ? colors.primaryForeground : colors.foreground, fontSize: 13 }}>{t('transactionForms.none')}</Text>
-                </Pressable>
+                />
                 {beneficiaries.map((b) => (
-                  <Pressable
+                  <FormChip
                     key={b.id}
+                    label={b.name}
+                    selected={beneficiaryId === b.id}
                     onPress={() => setBeneficiaryId(b.id)}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      borderRadius: radius,
-                      backgroundColor: beneficiaryId === b.id ? colors.primary : colors.secondary,
-                      borderWidth: 1,
-                      borderColor: beneficiaryId === b.id ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ color: beneficiaryId === b.id ? colors.primaryForeground : colors.foreground, fontSize: 13 }}>{b.name}</Text>
-                  </Pressable>
+                    icon="person-outline"
+                  />
                 ))}
               </View>
             ) : (
-              <Text style={{ color: colors.mutedForeground, fontSize: 13, marginBottom: 16 }}>
+              <AppText style={{ color: colors.mutedForeground, fontSize: 13 }}>
                 {t('transactionForms.noBeneficiaries')}
-              </Text>
+              </AppText>
             )}
-          </>
-        )}
+          </FormSection>
+        ) : null}
 
-        <Pressable onPress={pickPhoto} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, padding: 12, backgroundColor: colors.secondary, borderRadius: radius }}>
-          <Ionicons name="camera-outline" size={20} color={colors.primary} />
-          <Text style={{ color: colors.foreground }}>{photoUri ? t('transactionForms.photoSelected') : t('transactionForms.addPhotoOptional')}</Text>
-        </Pressable>
-        {photoUri && <Image source={{ uri: photoUri }} style={{ width: '100%', height: 120, borderRadius: radius, marginBottom: 16 }} resizeMode="cover" />}
+        <PressableScale
+          onPress={pickPhoto}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            marginBottom: 16,
+            padding: 14,
+            backgroundColor: colors.card,
+            borderRadius: radius,
+            shadowColor: '#000',
+            shadowOpacity: 0.05,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 2,
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.accent,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="camera" size={20} color={colors.primary} />
+          </View>
+          <AppText style={{ flex: 1, fontFamily: Font.medium }}>
+            {photoUri ? t('transactionForms.photoSelected') : t('transactionForms.addPhotoOptional')}
+          </AppText>
+          <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+        </PressableScale>
+        {photoUri ? (
+          <Image
+            source={{ uri: photoUri }}
+            style={{ width: '100%', height: 140, borderRadius: radius, marginBottom: 16 }}
+            resizeMode="cover"
+          />
+        ) : null}
 
         <Controller
           control={control}
@@ -326,27 +361,34 @@ export default function AddManualTransactionScreen() {
             <AmountCalculator
               value={value}
               onChange={onChange}
+              currency={currency}
               showIva={type === 'expense'}
+              tone={type === 'expense' ? 'expense' : 'income'}
             />
           )}
         />
         {errors.amount?.message ? (
-          <Text style={{ color: colors.destructive, marginBottom: 12 }}>{errors.amount.message}</Text>
+          <AppText style={{ color: colors.destructive, marginBottom: 12 }}>{errors.amount.message}</AppText>
         ) : null}
 
         {amount > 0 ? (
-          <Text style={{ color: colors.mutedForeground, fontSize: 13, marginBottom: 16, textAlign: 'center' }}>
-            {t('transactionForms.totalToSave', { amount: formatCurrency(amount, 'MXN') })}
-          </Text>
+          <AppText style={{ color: colors.mutedForeground, fontSize: 14, marginBottom: 16, textAlign: 'center' }}>
+            {t('transactionForms.totalToSave', { amount: formatCurrency(amount, currency) })}
+          </AppText>
         ) : null}
 
         <PrimarySaveButton title={saveLabel} onPress={onSave} loading={isSaving} style={{ marginBottom: 12 }} />
 
         {id ? (
-          <Button title={t('smartFill.deleteMovement')} variant="destructive" onPress={handleDelete} loading={deleteTx.isPending} style={{ marginBottom: 16 }} />
+          <Button
+            title={t('smartFill.deleteMovement')}
+            variant="destructive"
+            onPress={handleDelete}
+            loading={deleteTx.isPending}
+            style={{ marginBottom: 16 }}
+          />
         ) : null}
       </KeyboardAwareScrollView>
     </View>
   );
 }
-

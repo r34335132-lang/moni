@@ -1,26 +1,22 @@
 {
   "expo": {
-    "name": "MONI",
+    "name": "Moni Financiera",
     "slug": "moni",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.jpeg",
+    "icon": "./assets/images/icon.png",
     "scheme": "moni",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/icon.jpeg",
-      "resizeMode": "contain",
-      "backgroundColor": "#0A0A0A"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.moni.finance",
+      "deploymentTarget": "16.4",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "MONI necesita acceso al micrófono para registrar transacciones por voz.",
-        "NSSpeechRecognitionUsageDescription": "MONI necesita reconocimiento de voz para convertir tu audio en transacciones.",
-        "NSCameraUsageDescription": "MONI necesita acceso a la cámara para escanear tickets y recibos.",
-        "NSPhotoLibraryUsageDescription": "MONI necesita acceso a tus fotos para escanear tickets.",
+        "CFBundleDisplayName": "Moni Financiera",
+        "NSMicrophoneUsageDescription": "Moni Financiera solo usa el micrófono para adjuntar notas de voz a tus transacciones personales.",
+        "NSSpeechRecognitionUsageDescription": "Moni Financiera usa el reconocimiento de voz únicamente para convertir notas de voz en datos de tus transacciones personales.",
+        "NSCameraUsageDescription": "Moni Financiera solo usa la cámara para adjuntar fotos de recibos a tus transacciones personales.",
+        "NSPhotoLibraryUsageDescription": "Moni Financiera solo usa tu galería para adjuntar fotos de recibos a tus transacciones personales.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -29,15 +25,15 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_MEDIA_IMAGES"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.jpeg",
-        "backgroundColor": "#0A0A0A"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0A0A0B"
       }
     },
     "web": {
-      "favicon": "./assets/images/icon.jpeg",
+      "favicon": "./assets/images/icon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -45,24 +41,33 @@
       "expo-font",
       "expo-secure-store",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0A0A0B",
+          "imageWidth": 180
+        }
+      ],
+      [
         "expo-image-picker",
         {
-          "photosPermission": "MONI necesita acceso a tus fotos para escanear tickets.",
-          "cameraPermission": "MONI necesita acceso a la cámara para escanear tickets y recibos."
+          "photosPermission": "Moni Financiera solo usa tu galería para adjuntar fotos de recibos a tus transacciones personales.",
+          "cameraPermission": "Moni Financiera solo usa la cámara para adjuntar fotos de recibos a tus transacciones personales."
         }
       ],
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "MONI necesita acceso al micrófono para registrar transacciones por voz.",
-          "speechRecognitionPermission": "MONI necesita reconocimiento de voz para convertir tu audio en transacciones."
+          "microphonePermission": "Moni Financiera solo usa el micrófono para adjuntar notas de voz a tus transacciones personales.",
+          "speechRecognitionPermission": "Moni Financiera usa el reconocimiento de voz únicamente para convertir notas de voz en datos de tus transacciones personales."
         }
       ],
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.jpeg",
-          "color": "#22C55E"
+          "icon": "./assets/images/icon.png",
+          "color": "#2DBE5A"
         }
       ],
       "@react-native-community/datetimepicker",

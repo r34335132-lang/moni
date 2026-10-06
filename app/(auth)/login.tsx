@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, Alert, Pressable } from 'react-native';
+import { Alert, Pressable } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import { useTheme } from '@/src/hooks/useTheme';
 import { Input } from '@/src/components/ui/Input';
 import { AuthScreenLayout } from '@/src/components/auth/AuthScreenLayout';
 import { BigButton } from '@/src/components/auth/BigButton';
+import { AppText, Font } from '@/src/components/ui/AppText';
 import { getErrorMessage } from '@/src/core/utils/errors';
 
 export default function LoginScreen() {
@@ -41,19 +42,42 @@ export default function LoginScreen() {
       subtitle={t('auth.loginSubtitle')}
       footer={<BigButton title={t('auth.signIn')} onPress={handleSubmit(onSubmit)} loading={loading} />}
     >
-      <Controller control={control} name="email" render={({ field: { onChange, value } }) => (
-        <Input label={t('auth.email')} value={value} onChangeText={onChange} keyboardType="email-address" autoCapitalize="none" error={errors.email?.message} placeholder={t('auth.emailPlaceholder')} />
-      )} />
-      <Controller control={control} name="password" render={({ field: { onChange, value } }) => (
-        <Input label={t('auth.password')} value={value} onChangeText={onChange} secureTextEntry error={errors.password?.message} placeholder={t('auth.passwordPlaceholder')} />
-      )} />
+      <Controller
+        control={control}
+        name="email"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            label={t('auth.email')}
+            value={value}
+            onChangeText={onChange}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={errors.email?.message}
+            placeholder={t('auth.emailPlaceholder')}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { onChange, value } }) => (
+          <Input
+            label={t('auth.password')}
+            value={value}
+            onChangeText={onChange}
+            secureTextEntry
+            error={errors.password?.message}
+            placeholder={t('auth.passwordPlaceholder')}
+          />
+        )}
+      />
 
       <Link href="/(auth)/register" asChild>
-        <Pressable style={{ marginTop: 20, alignItems: 'center', paddingVertical: 8 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 15 }}>
+        <Pressable style={{ marginTop: 18, alignItems: 'center', paddingVertical: 8 }}>
+          <AppText style={{ color: colors.mutedForeground, fontSize: 15, textAlign: 'center' }}>
             {t('auth.noAccount')}{' '}
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('auth.registerFree')}</Text>
-          </Text>
+            <AppText style={{ color: colors.primary, fontFamily: Font.bold }}>{t('auth.registerFree')}</AppText>
+          </AppText>
         </Pressable>
       </Link>
     </AuthScreenLayout>

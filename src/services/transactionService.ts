@@ -158,16 +158,13 @@ export const categoryService = {
       .is('deleted_at', null);
     if (budgetError) handleSupabaseError(budgetError);
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('categories')
       .update({ deleted_at: deletedAt })
       .eq('id', id)
       .eq('user_id', userId)
-      .eq('is_system', false)
-      .select('id')
-      .maybeSingle();
+      .eq('is_system', false);
     if (error) handleSupabaseError(error);
-    if (!data) handleSupabaseError({ message: 'No se pudo eliminar la categoría.' });
   },
 };
 

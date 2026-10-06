@@ -4,9 +4,11 @@
     "baseUrl": ".",
     "strict": true,
     "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"],
+  "exclude": ["supabase/functions/**", "node_modules", "admin"]
 }

@@ -123,7 +123,7 @@ export const notificationService = {
     await Notifications.scheduleNotificationAsync({
       identifier: IDENTIFIERS.dailyQuote,
       content: {
-        title: '💚 Tu frase del día — MONI',
+        title: 'Tu frase del día — MONI',
         body: quote,
         data: { type: 'motivational', dayOfYear },
       },
@@ -154,7 +154,7 @@ export const notificationService = {
     await Notifications.scheduleNotificationAsync({
       identifier: `moni-manual-quote-${day}`,
       content: {
-        title: '💚 Tu frase del día — MONI',
+        title: 'Tu frase del día — MONI',
         body: quote,
         data: { type: 'motivational_manual' },
       },

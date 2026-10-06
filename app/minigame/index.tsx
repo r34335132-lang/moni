@@ -125,8 +125,11 @@ export default function MinigameScreen() {
               <Text style={{ color: '#94A3B8', textAlign: 'center', lineHeight: 22, marginBottom: 8 }}>
                 {t('minigame.instructions', { seconds: GAME_SECONDS })}
               </Text>
-              <Text style={{ color: '#64748B', fontSize: 12, textAlign: 'center' }}>
+              <Text style={{ color: '#64748B', fontSize: 12, textAlign: 'center', marginBottom: 8 }}>
                 {t('minigame.comeBack')}
+              </Text>
+              <Text style={{ color: '#475569', fontSize: 11, textAlign: 'center', lineHeight: 16 }}>
+                {t('minigame.entertainmentOnly')}
               </Text>
             </View>
           )}

@@ -1,14 +1,8 @@
 import React from 'react';
-import { Pressable, Text, ActivityIndicator, View, type PressableProps } from 'react-native';
+import { View, ActivityIndicator, type PressableProps } from 'react-native';
 import { useTheme } from '@/src/hooks/useTheme';
-
-/** Colores fijos — NativeWind puede borrar backgroundColor en Pressable */
-const PRIMARY_BG = '#22C55E';
-const PRIMARY_FG = '#FFFFFF';
-const DESTRUCTIVE_BG = '#EF4444';
-const DESTRUCTIVE_FG = '#FFFFFF';
-const SECONDARY_BG = '#F1F5F9';
-const SECONDARY_FG = '#0F172A';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AppText, Font } from '@/src/components/ui/AppText';
 
 interface ButtonProps extends PressableProps {
   title: string;
@@ -17,42 +11,54 @@ interface ButtonProps extends PressableProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function Button({ title, variant = 'primary', loading, size = 'md', disabled, style, ...props }: ButtonProps) {
-  const { colors, radius } = useTheme();
+export function Button({ title, variant = 'primary', loading, size = 'md', disabled, style, onPress, ...props }: ButtonProps) {
+  const { colors } = useTheme();
 
   const styles = {
-    primary: { bg: PRIMARY_BG, fg: PRIMARY_FG, border: PRIMARY_BG },
-    secondary: { bg: SECONDARY_BG, fg: SECONDARY_FG, border: colors.border },
-    destructive: { bg: DESTRUCTIVE_BG, fg: DESTRUCTIVE_FG, border: DESTRUCTIVE_BG },
+    primary: { bg: colors.primary, fg: colors.primaryForeground, border: 'transparent' },
+    secondary: { bg: colors.fill, fg: colors.foreground, border: 'transparent' },
+    // Soft coral pill (MonAi) instead of flat harsh red
+    destructive: {
+      bg: 'rgba(229,72,77,0.12)',
+      fg: colors.destructive,
+      border: 'transparent',
+    },
     ghost: { bg: 'transparent', fg: colors.foreground, border: colors.border },
   }[variant];
 
-  const pad = { sm: 10, md: 14, lg: 18 }[size];
+  const pad = { sm: 12, md: 15, lg: 17 }[size];
+  const fontSize = { sm: 15, md: 17, lg: 18 }[size];
+  const inactive = disabled || loading;
 
   return (
-    <Pressable disabled={disabled || loading} style={[{ width: '100%' }, style as object]} {...props}>
-      {({ pressed }) => (
-        <View
-          style={{
-            backgroundColor: styles.bg,
-            paddingVertical: pad,
-            paddingHorizontal: 20,
-            borderRadius: radius,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed || disabled ? 0.75 : 1,
-            borderWidth: variant === 'ghost' ? 1 : 0,
-            borderColor: styles.border,
-            minHeight: size === 'sm' ? 40 : 48,
-          }}
-        >
-          {loading ? (
-            <ActivityIndicator color={styles.fg} />
-          ) : (
-            <Text style={{ color: styles.fg, fontSize: size === 'sm' ? 14 : 16, fontWeight: '700' }}>{title}</Text>
-          )}
-        </View>
-      )}
-    </Pressable>
+    <PressableScale
+      disabled={inactive}
+      onPress={onPress}
+      scaleTo={0.98}
+      style={[{ width: '100%', opacity: inactive ? 0.65 : 1 }, style as object]}
+      {...props}
+    >
+      <View
+        style={{
+          backgroundColor: styles.bg,
+          paddingVertical: pad,
+          paddingHorizontal: 20,
+          borderRadius: 980,
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: size === 'sm' ? 44 : 52,
+          borderWidth: variant === 'ghost' ? 1 : 0,
+          borderColor: styles.border,
+        }}
+      >
+        {loading ? (
+          <ActivityIndicator color={styles.fg} />
+        ) : (
+          <AppText style={{ color: styles.fg, fontSize, fontFamily: Font.semibold }}>
+            {title}
+          </AppText>
+        )}
+      </View>
+    </PressableScale>
   );
 }

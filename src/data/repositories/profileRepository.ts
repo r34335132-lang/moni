@@ -6,7 +6,9 @@ export const profileRepository = {
   async getById(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email, currency, avatar_url, is_premium, created_at, updated_at, deleted_at')
+      .select(
+        'id, full_name, email, currency, avatar_url, is_premium, phone_e164, whatsapp_linked_at, created_at, updated_at, deleted_at',
+      )
       .eq('id', userId)
       .is('deleted_at', null)
       .maybeSingle();

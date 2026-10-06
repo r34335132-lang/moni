@@ -1,16 +1,23 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, type TouchableOpacityProps } from 'react-native';
+import {
+  View,
+  ActivityIndicator,
+  type StyleProp,
+  type ViewStyle,
+  type GestureResponderEvent,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AppText, Font } from '@/src/components/ui/AppText';
+import { useTheme } from '@/src/hooks/useTheme';
 
-/** Verde MONI — hardcoded para que NativeWind no borre el fondo */
-const BTN_GREEN = '#22C55E';
-const BTN_GREEN_DARK = '#16A34A';
-const BTN_TEXT = '#FFFFFF';
-
-interface PrimarySaveButtonProps extends TouchableOpacityProps {
+interface PrimarySaveButtonProps {
   title: string;
   loading?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
+  disabled?: boolean;
+  onPress?: (event: GestureResponderEvent) => void;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function PrimarySaveButton({
@@ -20,55 +27,53 @@ export function PrimarySaveButton({
   disabled,
   onPress,
   style,
-  ...rest
 }: PrimarySaveButtonProps) {
+  const { colors } = useTheme();
+  const inactive = disabled || loading;
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.85}
+    <PressableScale
       onPress={onPress}
-      disabled={disabled || loading}
-      style={[{ width: '100%' }, style as object]}
-      {...rest}
+      disabled={inactive}
+      scaleTo={0.97}
+      style={[{ width: '100%', opacity: inactive ? 0.72 : 1 }, style]}
     >
       <View
         style={{
+          borderRadius: 980,
+          backgroundColor: colors.primary,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 10,
-          backgroundColor: BTN_GREEN,
-          paddingVertical: 18,
-          paddingHorizontal: 24,
-          borderRadius: 16,
-          minHeight: 58,
-          borderWidth: 2,
-          borderColor: BTN_GREEN_DARK,
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.25,
-          shadowRadius: 6,
-          elevation: 10,
-          opacity: disabled || loading ? 0.7 : 1,
+          gap: 8,
+          paddingVertical: 16,
+          paddingHorizontal: 22,
+          minHeight: 56,
+          shadowColor: colors.primary,
+          shadowOpacity: 0.35,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 6,
         }}
       >
         {loading ? (
-          <ActivityIndicator color={BTN_TEXT} size="small" />
+          <ActivityIndicator color={colors.primaryForeground} size="small" />
         ) : (
           <>
-            <Ionicons name={icon} size={26} color={BTN_TEXT} />
-            <Text
+            <Ionicons name={icon} size={22} color={colors.primaryForeground} />
+            <AppText
               style={{
-                color: BTN_TEXT,
-                fontSize: 18,
-                fontWeight: '800',
-                letterSpacing: 0.2,
+                color: colors.primaryForeground,
+                fontSize: 17,
+                fontFamily: Font.semibold,
+                letterSpacing: -0.2,
               }}
             >
               {title}
-            </Text>
+            </AppText>
           </>
         )}
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
-
-import { View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLoans } from '@/src/hooks/useLoans';
@@ -10,64 +9,100 @@ import { useLanguage } from '@/src/providers/LanguageProvider';
 import { useTheme } from '@/src/hooks/useTheme';
 import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
-import { Card } from '@/src/components/ui/Card';
+import { Card, SectionLabel } from '@/src/components/ui/Card';
 import { ProgressBar } from '@/src/components/ui/ProgressBar';
 import { EmptyState } from '@/src/components/EmptyState';
+import { AnimatedIn } from '@/src/components/AnimatedIn';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AppText, Font } from '@/src/components/ui/AppText';
+import { MoneyDisplay } from '@/src/components/ui/MoneyDisplay';
 import { formatCurrency, formatDate } from '@/src/core/utils/format';
 import type { Loan, MoneyLent } from '@/src/core/types/entities';
 
 function LoanCard({
   title,
   remaining,
-  original,
   progress,
   subtitle,
   note,
-  amountColor,
+  tone,
   progressColor,
+  icon,
+  iconBg,
   onPress,
+  index = 0,
 }: {
   title: string;
   remaining: number;
-  original: number;
   progress: number;
   subtitle: string;
   note?: string | null;
-  amountColor: string;
+  tone: 'income' | 'expense' | 'neutral';
   progressColor?: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconBg: string;
   onPress: () => void;
+  index?: number;
 }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
   const { profile } = useAuth();
   const currency = profile?.currency ?? 'MXN';
+  const iconColor =
+    tone === 'income' ? colors.primary : tone === 'expense' ? colors.destructive : colors.mutedForeground;
 
   return (
-    <Pressable onPress={onPress}>
-      <Card style={{ marginBottom: 10 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-          <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: 16, flex: 1, marginRight: 8 }} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={{ color: amountColor, fontWeight: '700' }} numberOfLines={1} adjustsFontSizeToFit>
-            {formatCurrency(remaining, currency)}
-          </Text>
-        </View>
-        <ProgressBar progress={progress} color={progressColor} />
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 6 }}>{subtitle}</Text>
-        {note ? (
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }} numberOfLines={2}>
-            {t('loans.note')}: {note}
-          </Text>
-        ) : null}
-      </Card>
-    </Pressable>
+    <AnimatedIn index={index}>
+      <PressableScale onPress={onPress} scaleTo={0.98}>
+        <Card style={{ marginBottom: 10 }} padding={16}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <View
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 23,
+                backgroundColor: iconBg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name={icon} size={22} color={iconColor} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <AppText style={{ fontFamily: Font.semibold, fontSize: 16 }} numberOfLines={1}>
+                {title}
+              </AppText>
+              <AppText style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }} numberOfLines={2}>
+                {subtitle}
+              </AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+          </View>
+
+          <MoneyDisplay
+            amount={remaining}
+            currency={currency}
+            tone={tone}
+            size="md"
+            align="left"
+            style={{ marginBottom: 10 }}
+          />
+
+          <ProgressBar progress={progress} color={progressColor ?? iconColor} showLabel={false} />
+          {note ? (
+            <AppText style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 8 }} numberOfLines={2}>
+              {t('loans.note')}: {note}
+            </AppText>
+          ) : null}
+        </Card>
+      </PressableScale>
+    </AnimatedIn>
   );
 }
 
 export default function LoansScreen() {
   const { profile } = useAuth();
-  const { colors, radius } = useTheme();
+  const { colors, radiusPill, isDark } = useTheme();
   const { t } = useLanguage();
   const currency = profile?.currency ?? 'MXN';
   const { data: loans, isLoading: loadingLoans } = useLoans();
@@ -80,20 +115,27 @@ export default function LoansScreen() {
   const pendingLent = useMemo(() => (moneyLent ?? []).filter((m) => m.status === 'pending'), [moneyLent]);
   const paidLent = useMemo(() => (moneyLent ?? []).filter((m) => m.status === 'paid_off'), [moneyLent]);
 
-  const renderBorrowed = (loan: Loan, paidOff: boolean) => {
-    const progress = ((Number(loan.amount) - Number(loan.remaining_balance)) / Number(loan.amount)) * 100;
+  const totalOwe = pendingLoans.reduce((s, l) => s + Number(l.remaining_balance || 0), 0);
+  const totalCollect = pendingLent.reduce((s, m) => s + Number(m.remaining_balance || 0), 0);
+
+  const renderBorrowed = (loan: Loan, paidOff: boolean, index: number) => {
+    const amount = Number(loan.amount || 0);
+    const remaining = Number(loan.remaining_balance || 0);
+    const progress = amount > 0 ? ((amount - remaining) / amount) * 100 : 0;
     return (
       <LoanCard
         key={loan.id}
+        index={index}
         title={loan.lender}
-        remaining={Number(loan.remaining_balance)}
-        original={Number(loan.amount)}
+        remaining={remaining}
         progress={progress}
-        amountColor={paidOff ? colors.mutedForeground : colors.destructive}
+        tone={paidOff ? 'neutral' : 'expense'}
+        iconBg={paidOff ? colors.fill : 'rgba(229,72,77,0.12)'}
+        icon="arrow-down"
         subtitle={
           paidOff
-            ? `${t('loans.paidOffLabel')} · ${t('loans.original')}: ${formatCurrency(Number(loan.amount), currency)}`
-            : `${t('loans.original')}: ${formatCurrency(Number(loan.amount), currency)}${loan.due_date ? ` · ${t('loans.due')}: ${formatDate(loan.due_date)}` : ''}`
+            ? `${t('loans.paidOffLabel')} · ${formatCurrency(amount, currency)}`
+            : `${t('loans.original')}: ${formatCurrency(amount, currency)}${loan.due_date ? ` · ${formatDate(loan.due_date, 'd MMM')}` : ''}`
         }
         note={loan.notes}
         onPress={() => router.push(`/loans/${loan.id}?type=borrowed`)}
@@ -101,21 +143,25 @@ export default function LoansScreen() {
     );
   };
 
-  const renderLent = (item: MoneyLent, paidOff: boolean) => {
-    const progress = ((Number(item.amount) - Number(item.remaining_balance)) / Number(item.amount)) * 100;
+  const renderLent = (item: MoneyLent, paidOff: boolean, index: number) => {
+    const amount = Number(item.amount || 0);
+    const remaining = Number(item.remaining_balance || 0);
+    const progress = amount > 0 ? ((amount - remaining) / amount) * 100 : 0;
     return (
       <LoanCard
         key={item.id}
+        index={index}
         title={item.debtor_name}
-        remaining={Number(item.remaining_balance)}
-        original={Number(item.amount)}
+        remaining={remaining}
         progress={progress}
-        amountColor={paidOff ? colors.mutedForeground : colors.primary}
+        tone={paidOff ? 'neutral' : 'income'}
         progressColor={colors.primary}
+        iconBg={paidOff ? colors.fill : colors.accent}
+        icon="arrow-up"
         subtitle={
           paidOff
-            ? `${t('loans.collectedLabel')} · ${item.concept ?? t('loans.noConcept')} · ${formatDate(item.lent_date)}`
-            : `${item.concept ?? t('loans.noConcept')} · ${formatDate(item.lent_date)}`
+            ? `${t('loans.collectedLabel')} · ${item.concept ?? t('loans.noConcept')}`
+            : `${item.concept ?? t('loans.noConcept')} · ${formatDate(item.lent_date, 'd MMM')}`
         }
         onPress={() => router.push(`/loans/${item.id}?type=lent`)}
       />
@@ -126,56 +172,111 @@ export default function LoansScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={t('loans.title')} subtitle={t('loans.subtitle')} />
       <ScreenContainer>
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
-          <Pressable
-            onPress={() => router.push('/loans/create-borrowed')}
-            style={{ flex: 1, backgroundColor: colors.primary, borderRadius: radius, padding: 14, alignItems: 'center' }}
-          >
-            <Ionicons name="arrow-down-circle" size={24} color={colors.primaryForeground} />
-            <Text style={{ color: colors.primaryForeground, fontWeight: '600', marginTop: 6, fontSize: 13 }}>{t('loans.requestLoan')}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/loans/create-lent')}
-            style={{ flex: 1, backgroundColor: colors.secondary, borderRadius: radius, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}
-          >
-            <Ionicons name="arrow-up-circle" size={24} color={colors.primary} />
-            <Text style={{ color: colors.foreground, fontWeight: '600', marginTop: 6, fontSize: 13 }}>{t('loans.lendMoney')}</Text>
-          </Pressable>
-        </View>
+        <AnimatedIn>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 18 }}>
+            <Card style={{ flex: 1, minWidth: 0 }} padding={14}>
+              <MoneyDisplay
+                amount={totalOwe}
+                currency={currency}
+                tone="expense"
+                size="md"
+                label={t('loans.iOwe')}
+              />
+            </Card>
+            <Card style={{ flex: 1, minWidth: 0 }} padding={14}>
+              <MoneyDisplay
+                amount={totalCollect}
+                currency={currency}
+                tone="income"
+                size="md"
+                label={t('loans.theyOweMe')}
+              />
+            </Card>
+          </View>
+        </AnimatedIn>
+
+        <AnimatedIn index={1}>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 22 }}>
+            <PressableScale
+              onPress={() => router.push('/loans/create-borrowed')}
+              style={{
+                flex: 1,
+                backgroundColor: colors.primary,
+                borderRadius: radiusPill,
+                paddingVertical: 16,
+                alignItems: 'center',
+                shadowColor: colors.primary,
+                shadowOpacity: 0.28,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 4,
+              }}
+            >
+              <Ionicons name="arrow-down-circle" size={26} color={colors.primaryForeground} />
+              <AppText style={{ color: colors.primaryForeground, fontFamily: Font.semibold, marginTop: 6, fontSize: 13 }}>
+                {t('loans.requestLoan')}
+              </AppText>
+            </PressableScale>
+            <PressableScale
+              onPress={() => router.push('/loans/create-lent')}
+              style={{
+                flex: 1,
+                backgroundColor: colors.card,
+                borderRadius: radiusPill,
+                paddingVertical: 16,
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOpacity: isDark ? 0.25 : 0.06,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 2,
+              }}
+            >
+              <Ionicons name="arrow-up-circle" size={26} color={colors.primary} />
+              <AppText style={{ color: colors.foreground, fontFamily: Font.semibold, marginTop: 6, fontSize: 13 }}>
+                {t('loans.lendMoney')}
+              </AppText>
+            </PressableScale>
+          </View>
+        </AnimatedIn>
 
         {isLoading ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
           <>
-            <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '600', marginBottom: 12 }}>{t('loans.iOwe')}</Text>
+            <SectionLabel>{t('loans.iOwe')}</SectionLabel>
             {pendingLoans.length ? (
-              pendingLoans.map((loan) => renderBorrowed(loan, false))
+              pendingLoans.map((loan, i) => renderBorrowed(loan, false, i))
+            ) : pendingLent.length === 0 && paidLoans.length === 0 && paidLent.length === 0 ? (
+              <EmptyState
+                title={t('loans.noDebts')}
+                subtitle={t('loans.noDebtsSub')}
+                icon="cash-outline"
+                actionLabel={t('loans.requestLoan')}
+                onAction={() => router.push('/loans/create-borrowed')}
+              />
             ) : (
               <EmptyState title={t('loans.noDebts')} subtitle={t('loans.noDebtsSub')} icon="checkmark-circle-outline" />
             )}
 
             {paidLoans.length > 0 ? (
               <>
-                <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '600', marginTop: 24, marginBottom: 12 }}>
-                  {t('loans.historyPaidOff')}
-                </Text>
-                {paidLoans.map((loan) => renderBorrowed(loan, true))}
+                <SectionLabel>{t('loans.historyPaidOff')}</SectionLabel>
+                {paidLoans.map((loan, i) => renderBorrowed(loan, true, i))}
               </>
             ) : null}
 
-            <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '600', marginTop: 24, marginBottom: 12 }}>{t('loans.theyOweMe')}</Text>
+            <SectionLabel>{t('loans.theyOweMe')}</SectionLabel>
             {pendingLent.length ? (
-              pendingLent.map((item) => renderLent(item, false))
-            ) : (
+              pendingLent.map((item, i) => renderLent(item, false, i))
+            ) : pendingLoans.length > 0 || paidLoans.length > 0 || paidLent.length > 0 ? (
               <EmptyState title={t('loans.noCollections')} subtitle={t('loans.noCollectionsSub')} icon="happy-outline" />
-            )}
+            ) : null}
 
             {paidLent.length > 0 ? (
               <>
-                <Text style={{ color: colors.foreground, fontSize: 17, fontWeight: '600', marginTop: 24, marginBottom: 12 }}>
-                  {t('loans.historyCollected')}
-                </Text>
-                {paidLent.map((item) => renderLent(item, true))}
+                <SectionLabel>{t('loans.historyCollected')}</SectionLabel>
+                {paidLent.map((item, i) => renderLent(item, true, i))}
               </>
             ) : null}
           </>

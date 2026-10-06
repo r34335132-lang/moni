@@ -14,7 +14,7 @@ import {
 import { transactionRepository } from '@/src/data/repositories/transactionRepository';
 import { buildExpenseSlices } from '@/src/components/ExpenseDonutChart';
 
-const LOGO = require('../../assets/images/icon.jpeg');
+const LOGO = require('../../assets/images/icon.png');
 
 async function getLogoBase64(): Promise<string> {
   const asset = Asset.fromModule(LOGO);
@@ -96,9 +96,9 @@ function buildHtml(params: {
 </head>
 <body>
   <div class="header">
-    ${logoBase64 ? `<img class="logo" src="data:image/jpeg;base64,${logoBase64}" alt="MONI"/>` : ''}
+    ${logoBase64 ? `<img class="logo" src="data:image/png;base64,${logoBase64}" alt="Moni Financiera"/>` : ''}
     <div>
-      <h1>MONI — Reporte mensual</h1>
+      <h1>Moni Financiera — Reporte mensual</h1>
       <div class="sub">${escapeHtml(monthLabel)} · ${escapeHtml(userName)}</div>
     </div>
   </div>
@@ -118,7 +118,7 @@ function buildHtml(params: {
     <tbody>${txRows || '<tr><td colspan="4">Sin movimientos</td></tr>'}</tbody>
   </table>
 
-  <div class="footer">Generado por MONI · ${escapeHtml(formatDate(new Date(), "d MMMM yyyy, HH:mm"))}</div>
+  <div class="footer">Generado por Moni Financiera · ${escapeHtml(formatDate(new Date(), "d MMMM yyyy, HH:mm"))}</div>
 </body>
 </html>`;
 }
@@ -157,14 +157,14 @@ export const monthlyReportPdfService = {
     });
 
     const { uri } = await Print.printToFileAsync({ html, base64: false });
-    const fileName = `MONI-reporte-${y}-${String(m).padStart(2, '0')}.pdf`;
+    const fileName = `Moni-Financiera-reporte-${y}-${String(m).padStart(2, '0')}.pdf`;
     const dest = `${FileSystem.cacheDirectory}${fileName}`;
     await FileSystem.moveAsync({ from: uri, to: dest });
 
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(dest, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Exportar reporte MONI',
+        dialogTitle: 'Exportar reporte Moni Financiera',
         UTI: 'com.adobe.pdf',
       });
     }

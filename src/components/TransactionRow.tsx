@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useLanguage } from '@/src/providers/LanguageProvider';
-import { formatCurrency, formatDate, isIncomeType, INCOME_COLOR, EXPENSE_COLOR } from '@/src/core/utils/format';
+import { formatCurrency, formatDate, isIncomeType, INCOME_COLOR } from '@/src/core/utils/format';
 import { getCategoryIcon } from '@/src/core/constants/categories';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AppText, Font } from '@/src/components/ui/AppText';
 import type { Transaction } from '@/src/core/types/entities';
 
 interface TransactionRowProps {
@@ -12,14 +14,24 @@ interface TransactionRowProps {
   currency?: string;
   onPress?: () => void;
   compact?: boolean;
+  /** e.g. "Otro mes · marzo 2026" when searching across months */
+  otherMonthLabel?: string | null;
 }
 
-export function TransactionRow({ transaction, currency = 'MXN', onPress, compact }: TransactionRowProps) {
-  const { colors, radius } = useTheme();
+/** MonAi-style transaction row: icon · category · title · amount pill */
+export function TransactionRow({
+  transaction,
+  currency = 'MXN',
+  onPress,
+  compact,
+  otherMonthLabel,
+}: TransactionRowProps) {
+  const { colors } = useTheme();
   const { t } = useLanguage();
   const isIncome = isIncomeType(transaction.type);
   const sign = isIncome ? '+' : '-';
-  const amountColor = isIncome ? INCOME_COLOR : EXPENSE_COLOR;
+  const amountColor = isIncome ? INCOME_COLOR : colors.foreground;
+  const catColor = transaction.category?.color ?? colors.primary;
 
   const title =
     transaction.description?.trim() ||
@@ -27,85 +39,96 @@ export function TransactionRow({ transaction, currency = 'MXN', onPress, compact
     transaction.category?.name ||
     t('transactions.movementFallback');
 
-  const accountName = transaction.account?.name;
-  const typeLabel = isIncome
-    ? t('common.income')
-    : transaction.type === 'transfer'
-      ? t('common.transfer')
-      : t('common.expense');
-
-  const subtitleParts = [
-    accountName ? `🏦 ${accountName}` : null,
-    formatDate(transaction.transaction_date, 'd MMM yyyy'),
-    transaction.category?.name,
-    typeLabel,
-  ].filter(Boolean);
+  const categoryLabel = transaction.category?.name ?? (isIncome ? t('common.income') : t('common.expense'));
 
   const content = (
     <>
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          backgroundColor: transaction.category?.color ? `${transaction.category.color}22` : colors.secondary,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: `${catColor}22`,
           alignItems: 'center',
           justifyContent: 'center',
           marginRight: 12,
         }}
       >
-        <Ionicons
-          name={getCategoryIcon(transaction.category?.icon)}
-          size={20}
-          color={transaction.category?.color ?? colors.mutedForeground}
-        />
+        <Ionicons name={getCategoryIcon(transaction.category?.icon)} size={22} color={catColor} />
       </View>
-      <View style={{ flex: 1, marginRight: 8 }}>
-        <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: '600' }} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 3 }} numberOfLines={2}>
-          {subtitleParts.join(' · ')}
-        </Text>
-        {accountName ? (
-          <View
-            style={{
-              alignSelf: 'flex-start',
-              marginTop: 5,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              borderRadius: 8,
-              backgroundColor: `${colors.primary}18`,
-            }}
-          >
-            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>{accountName}</Text>
-          </View>
-        ) : null}
-      </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text
-          style={{ color: amountColor, fontSize: 16, fontWeight: '800' }}
+
+      <View style={{ flex: 1, marginRight: 10, minWidth: 0 }}>
+        <AppText
+          style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: Font.medium }}
           numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.8}
         >
-          {sign}{formatCurrency(Number(transaction.amount), currency)}
-        </Text>
-        {!compact && transaction.category?.name ? (
-          <View
-            style={{
-              marginTop: 4,
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 8,
-              backgroundColor: isIncome ? '#ECFDF5' : '#FEF2F2',
-            }}
-          >
-            <Text style={{ color: isIncome ? INCOME_COLOR : EXPENSE_COLOR, fontSize: 10, fontWeight: '700' }}>
-              {transaction.category.name}
-            </Text>
+          {categoryLabel}
+        </AppText>
+        <AppText
+          style={{ color: colors.foreground, fontFamily: Font.semibold, fontSize: 17, marginTop: 2 }}
+          numberOfLines={1}
+        >
+          {title}
+        </AppText>
+        {!compact ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 980,
+                backgroundColor: colors.fill,
+              }}
+            >
+              <AppText style={{ color: colors.mutedForeground, fontSize: 12 }} numberOfLines={1}>
+                {formatDate(transaction.transaction_date, 'd MMM')}
+                {transaction.account?.name ? ` · ${transaction.account.name}` : ''}
+                {transaction.tags?.includes('source:whatsapp') ? ` · ${t('transactions.viaWhatsapp')}` : ''}
+              </AppText>
+            </View>
+            {otherMonthLabel ? (
+              <View
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 980,
+                  backgroundColor: colors.accent,
+                }}
+              >
+                <AppText style={{ color: colors.accentForeground, fontSize: 12, fontFamily: Font.medium }} numberOfLines={1}>
+                  {otherMonthLabel}
+                </AppText>
+              </View>
+            ) : null}
           </View>
+        ) : otherMonthLabel ? (
+          <AppText style={{ color: colors.primary, fontSize: 11, fontFamily: Font.medium, marginTop: 4 }} numberOfLines={1}>
+            {otherMonthLabel}
+          </AppText>
         ) : null}
+      </View>
+
+      <View
+        style={{
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 980,
+          backgroundColor: colors.fill,
+        }}
+      >
+        <AppText
+          style={{
+            color: amountColor,
+            fontFamily: Font.bold,
+            fontSize: 15,
+            letterSpacing: -0.2,
+          }}
+          numberOfLines={1}
+        >
+          {sign} {formatCurrency(Number(transaction.amount), currency)}
+        </AppText>
       </View>
     </>
   );
@@ -113,20 +136,16 @@ export function TransactionRow({ transaction, currency = 'MXN', onPress, compact
   const rowStyle = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: colors.card,
-    borderRadius: radius,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical: compact ? 12 : 14,
+    paddingHorizontal: 4,
+    minHeight: 72,
   };
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [rowStyle, { backgroundColor: pressed ? colors.secondary : colors.card }]}>
+      <PressableScale onPress={onPress} scaleTo={0.99} style={rowStyle}>
         {content}
-      </Pressable>
+      </PressableScale>
     );
   }
 

@@ -199,12 +199,15 @@ export const bankConnectionService = {
   },
 
   async disconnect(id: string) {
-    const { error } = await supabase
+    const soft = await supabase
       .from('bank_connections')
       .update({ status: 'disconnected', deleted_at: new Date().toISOString() })
-      .eq('id', id);
+      .eq('id', id)
+      .is('deleted_at', null);
+    if (!soft.error) return;
 
-    if (error) handleSupabaseError(error);
+    const hard = await supabase.from('bank_connections').delete().eq('id', id);
+    if (hard.error) handleSupabaseError(soft.error);
   },
 };
 

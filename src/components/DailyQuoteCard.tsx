@@ -1,56 +1,56 @@
 import React from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/src/hooks/useTheme';
+import { useLanguage } from '@/src/providers/LanguageProvider';
 import { getQuoteForDay } from '@/src/core/constants/motivationalQuotes';
 import { notificationService } from '@/src/services/notificationService';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AppText, Font } from '@/src/components/ui/AppText';
 
-interface DailyQuoteCardProps {
-  onShare?: () => void;
-}
-
-export function DailyQuoteCard({ onShare }: DailyQuoteCardProps) {
+export function DailyQuoteCard() {
   const { colors, radius } = useTheme();
+  const { t } = useLanguage();
   const quote = getQuoteForDay();
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
-  );
 
   const handleNotify = async () => {
     const sent = await notificationService.sendInstantQuote();
     if (sent) {
-      Alert.alert('Enviada', 'Frase del día enviada (solo una por día).');
+      Alert.alert(t('common.saved'), t('dashboard.quoteSent'));
     } else {
-      Alert.alert('Ya enviada', 'Hoy ya recibiste la frase del día.');
+      Alert.alert(t('common.notice'), t('dashboard.quoteAlreadySent'));
     }
-    onShare?.();
   };
 
   return (
     <View
       style={{
-        backgroundColor: colors.accent,
+        backgroundColor: colors.card,
         borderRadius: radius,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
+        padding: 18,
+        marginBottom: 14,
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: colors.border,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Ionicons name="sparkles" size={18} color={colors.primary} />
-          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>
-            Frase del día #{dayOfYear}
-          </Text>
-        </View>
-        <Pressable onPress={handleNotify} hitSlop={8}>
-          <Ionicons name="notifications-outline" size={20} color={colors.primary} />
-        </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <AppText variant="label" style={{ color: colors.mutedForeground, textTransform: 'uppercase' }}>
+          {t('dashboard.dailyQuote')}
+        </AppText>
+        <PressableScale onPress={handleNotify} scaleTo={0.9} hitSlop={10} accessibilityLabel={t('dashboard.dailyQuote')}>
+          <Ionicons name="paper-plane-outline" size={20} color={colors.mutedForeground} />
+        </PressableScale>
       </View>
-      <Text style={{ color: colors.foreground, fontSize: 16, lineHeight: 24, fontWeight: '500' }}>
-        "{quote}"
-      </Text>
+      <AppText
+        style={{
+          color: colors.foreground,
+          fontFamily: Font.medium,
+          fontSize: 17,
+          lineHeight: 26,
+        }}
+      >
+        {quote}
+      </AppText>
     </View>
   );
 }

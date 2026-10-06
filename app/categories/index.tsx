@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, Alert, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Alert, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCategories, useCreateCategory, useDeleteCategory } from '@/src/hooks/useCategories';
 import { useTheme } from '@/src/hooks/useTheme';
@@ -15,59 +15,66 @@ import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Input } from '@/src/components/ui/Input';
 import { PrimarySaveButton } from '@/src/components/ui/PrimarySaveButton';
 import { EmptyState } from '@/src/components/EmptyState';
+import { IconActionButton } from '@/src/components/ui/IconActionButton';
+import { Card, SectionLabel } from '@/src/components/ui/Card';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AnimatedIn } from '@/src/components/AnimatedIn';
+import { AppText, Font } from '@/src/components/ui/AppText';
 import { getErrorMessage } from '@/src/core/utils/errors';
 import type { Category, CategoryType } from '@/src/core/types/entities';
 
-function CategoryCard({ cat, onDelete }: { cat: Category; onDelete?: () => void }) {
-  const { colors, radius } = useTheme();
+function CategoryCard({ cat, onDelete, index = 0 }: { cat: Category; onDelete?: () => void; index?: number }) {
+  const { colors } = useTheme();
   const { t } = useLanguage();
-  const typeLabel = cat.type === 'income' ? t('common.income') : cat.type === 'both' ? t('common.both') : t('common.expense');
+  const typeLabel =
+    cat.type === 'income' ? t('common.income') : cat.type === 'both' ? t('common.both') : t('common.expense');
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 14,
-        marginBottom: 10,
-        backgroundColor: colors.card,
-        borderRadius: radius,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 12,
-          backgroundColor: `${cat.color}22`,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: 14,
-        }}
-      >
-        <Ionicons name={getCategoryIcon(cat.icon)} size={22} color={cat.color} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '600' }}>{cat.name}</Text>
-        <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
-          {typeLabel}{cat.is_system ? ` · ${t('categories.system')}` : ''}
-        </Text>
-      </View>
-      {cat.is_system ? (
-        <Ionicons name="lock-closed-outline" size={16} color={colors.mutedForeground} />
-      ) : onDelete ? (
-        <Pressable onPress={onDelete} hitSlop={8}>
-          <Ionicons name="trash-outline" size={18} color={colors.destructive} />
-        </Pressable>
-      ) : null}
-    </View>
+    <AnimatedIn index={index}>
+      <Card style={{ marginBottom: 10, flexDirection: 'row', alignItems: 'center' }} padding={14}>
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 18,
+            backgroundColor: `${cat.color}22`,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 14,
+          }}
+        >
+          <Ionicons name={getCategoryIcon(cat.icon)} size={22} color={cat.color} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText style={{ fontSize: 16, fontFamily: Font.semibold }}>{cat.name}</AppText>
+          <AppText style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>
+            {typeLabel}
+            {cat.is_system ? ` · ${t('categories.system')}` : ''}
+          </AppText>
+        </View>
+        {cat.is_system ? (
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: colors.fill,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="lock-closed" size={16} color={colors.mutedForeground} />
+          </View>
+        ) : onDelete ? (
+          <IconActionButton variant="delete" size="sm" onPress={onDelete} accessibilityLabel={t('common.delete')} />
+        ) : null}
+      </Card>
+    </AnimatedIn>
   );
 }
 
 export default function CategoriesScreen() {
-  const { colors, radius } = useTheme();
+  const { colors, radiusPill } = useTheme();
   const { t } = useLanguage();
   const { data: categories, isLoading } = useCategories();
   const createCategory = useCreateCategory();
@@ -130,44 +137,58 @@ export default function CategoriesScreen() {
         title={t('categories.title')}
         showBack
         rightAction={
-          <Pressable onPress={() => setShowForm(!showForm)}>
-            <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('categories.new')}</Text>
-          </Pressable>
+          <PressableScale
+            onPress={() => setShowForm(!showForm)}
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: radiusPill,
+              backgroundColor: colors.fill,
+            }}
+          >
+            <AppText style={{ color: colors.primary, fontFamily: Font.semibold }}>{t('categories.new')}</AppText>
+          </PressableScale>
         }
       />
       <ScreenContainer>
-        <Text style={{ color: colors.mutedForeground, fontSize: 13, marginBottom: 16, lineHeight: 20 }}>
+        <AppText style={{ color: colors.mutedForeground, fontSize: 14, marginBottom: 16, lineHeight: 20 }}>
           {t('categories.basicsHint', { list: SYSTEM_CATEGORY_NAMES.slice(0, 8).join(', ') })}
-        </Text>
+        </AppText>
 
-        {showForm && (
-          <View style={{ marginBottom: 16 }}>
+        {showForm ? (
+          <Card style={{ marginBottom: 18 }} padding={16}>
             <Input label={t('common.name')} value={name} onChangeText={setName} placeholder={t('categories.namePlaceholder')} />
 
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>{t('common.type')}</Text>
+            <AppText style={{ fontFamily: Font.semibold, fontSize: 14, marginBottom: 8 }}>{t('common.type')}</AppText>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-              {(['expense', 'income'] as const).map((opt) => (
-                <Pressable
-                  key={opt}
-                  onPress={() => setCatType(opt)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 12,
-                    borderRadius: radius,
-                    alignItems: 'center',
-                    backgroundColor: catType === opt ? colors.primary : colors.secondary,
-                    borderWidth: 1,
-                    borderColor: catType === opt ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ color: catType === opt ? colors.primaryForeground : colors.foreground, fontWeight: '700' }}>
-                    {opt === 'expense' ? t('common.expense') : t('common.income')}
-                  </Text>
-                </Pressable>
-              ))}
+              {(['expense', 'income'] as const).map((opt) => {
+                const selected = catType === opt;
+                return (
+                  <PressableScale
+                    key={opt}
+                    onPress={() => setCatType(opt)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 12,
+                      borderRadius: radiusPill,
+                      alignItems: 'center',
+                      backgroundColor: selected ? colors.primary : colors.fill,
+                    }}
+                  >
+                    <AppText
+                      style={{
+                        color: selected ? colors.primaryForeground : colors.foreground,
+                        fontFamily: Font.bold,
+                      }}
+                    >
+                      {opt === 'expense' ? t('common.expense') : t('common.income')}
+                    </AppText>
+                  </PressableScale>
+                );
+              })}
             </View>
 
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>{t('categories.icon')}</Text>
+            <AppText style={{ fontFamily: Font.semibold, fontSize: 14, marginBottom: 8 }}>{t('categories.icon')}</AppText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
               {PICKABLE_CATEGORY_ICONS.map((ic) => (
                 <Pressable
@@ -176,13 +197,13 @@ export default function CategoriesScreen() {
                   style={{
                     width: 48,
                     height: 48,
-                    borderRadius: 12,
+                    borderRadius: 24,
                     marginRight: 8,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: icon === ic ? `${color}44` : colors.secondary,
-                    borderWidth: 2,
-                    borderColor: icon === ic ? color : colors.border,
+                    backgroundColor: icon === ic ? `${color}44` : colors.fill,
+                    borderWidth: icon === ic ? 2 : 0,
+                    borderColor: color,
                   }}
                 >
                   <Ionicons name={getCategoryIcon(ic)} size={22} color={icon === ic ? color : colors.foreground} />
@@ -190,32 +211,45 @@ export default function CategoriesScreen() {
               ))}
             </ScrollView>
 
-            <PrimarySaveButton title={t('categories.create')} icon="add-circle" onPress={handleCreate} loading={createCategory.isPending} />
-          </View>
-        )}
+            <PrimarySaveButton
+              title={t('categories.create')}
+              icon="add-circle"
+              onPress={handleCreate}
+              loading={createCategory.isPending}
+            />
+          </Card>
+        ) : null}
 
         {isLoading ? (
           <ActivityIndicator color={colors.primary} />
         ) : categories?.length ? (
           <>
-            {expenses.length > 0 && (
+            {expenses.length > 0 ? (
               <>
-                <Text style={{ color: '#DC2626', fontSize: 15, fontWeight: '700', marginBottom: 10 }}>{t('transactions.expenses')}</Text>
-                {expenses.map((cat) => (
-                  <CategoryCard key={`exp-${cat.id}`} cat={cat} onDelete={cat.is_system ? undefined : () => confirmDelete(cat)} />
+                <SectionLabel>{t('transactions.expenses')}</SectionLabel>
+                {expenses.map((cat, i) => (
+                  <CategoryCard
+                    key={`exp-${cat.id}`}
+                    cat={cat}
+                    index={i}
+                    onDelete={cat.is_system ? undefined : () => confirmDelete(cat)}
+                  />
                 ))}
               </>
-            )}
-            {incomes.length > 0 && (
+            ) : null}
+            {incomes.length > 0 ? (
               <>
-                <Text style={{ color: '#15803D', fontSize: 15, fontWeight: '700', marginBottom: 10, marginTop: expenses.length ? 16 : 0 }}>
-                  {t('transactions.incomes')}
-                </Text>
-                {incomes.map((cat) => (
-                  <CategoryCard key={`inc-${cat.id}`} cat={cat} onDelete={cat.is_system ? undefined : () => confirmDelete(cat)} />
+                <SectionLabel>{t('transactions.incomes')}</SectionLabel>
+                {incomes.map((cat, i) => (
+                  <CategoryCard
+                    key={`inc-${cat.id}`}
+                    cat={cat}
+                    index={i + expenses.length}
+                    onDelete={cat.is_system ? undefined : () => confirmDelete(cat)}
+                  />
                 ))}
               </>
-            )}
+            ) : null}
           </>
         ) : (
           <EmptyState title={t('categories.empty')} />

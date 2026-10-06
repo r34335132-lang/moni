@@ -5,14 +5,16 @@ import { moneyLentRepository } from '@/src/data/repositories/moneyLentRepository
 import { budgetRepository } from '@/src/data/repositories/budgetRepository';
 import { savingGoalRepository } from '@/src/data/repositories/savingGoalRepository';
 import type { DashboardStats } from '@/src/core/types/entities';
-import { getMonthYear, isIncomeType, isExpenseType } from '@/src/core/utils/format';
+import { getDayDateRange, getMonthYear, isIncomeType, isExpenseType } from '@/src/core/utils/format';
 
 export const dashboardService = {
   async getStats(userId: string): Promise<DashboardStats> {
     const { month, year } = getMonthYear();
-    const [accounts, monthlyTx, loans, moneyLent, budgets, goals] = await Promise.all([
+    const { startDate, endBefore } = getDayDateRange();
+    const [accounts, monthlyTx, todayTx, loans, moneyLent, budgets, goals] = await Promise.all([
       accountRepository.getAll(userId),
       transactionRepository.getMonthlyStats(userId, month, year),
+      transactionRepository.getAll(userId, { startDate, endBefore }),
       loanRepository.getAll(userId),
       moneyLentRepository.getAll(userId),
       budgetRepository.getByPeriod(userId, month, year),
@@ -22,6 +24,11 @@ export const dashboardService = {
     const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
     const monthlyIncome = monthlyTx.filter((t) => isIncomeType(t.type)).reduce((s, t) => s + Number(t.amount), 0);
     const monthlyExpenses = monthlyTx.filter((t) => isExpenseType(t.type)).reduce((s, t) => s + Number(t.amount), 0);
+    const todayIncome = todayTx.filter((t) => isIncomeType(t.type)).reduce((s, t) => s + Number(t.amount), 0);
+    const todayExpenses = todayTx.filter((t) => isExpenseType(t.type)).reduce((s, t) => s + Number(t.amount), 0);
+    const todayCount = todayTx.length;
+    const savingsSaved = goals.reduce((s, g) => s + Number(g.current_amount), 0);
+    const savingsTarget = goals.reduce((s, g) => s + Number(g.target_amount), 0);
 
     const pendingLoans = loans.filter((l) => l.status === 'pending');
     const pendingDebts = pendingLoans.reduce((s, l) => s + Number(l.remaining_balance), 0);
@@ -48,7 +55,10 @@ export const dashboardService = {
     });
 
     const savingGoalsProgress = goals.length
-      ? goals.reduce((s, g) => s + (Number(g.current_amount) / Number(g.target_amount)) * 100, 0) / goals.length
+      ? goals.reduce((s, g) => {
+          const target = Number(g.target_amount);
+          return s + (target > 0 ? (Number(g.current_amount) / target) * 100 : 0);
+        }, 0) / goals.length
       : 0;
 
     return {
@@ -61,6 +71,12 @@ export const dashboardService = {
       nextPayment,
       budgetRemaining,
       savingGoalsProgress,
+      todayIncome,
+      todayExpenses,
+      todayCount,
+      savingsSaved,
+      savingsTarget,
+      savingGoalsCount: goals.length,
     };
   },
 };

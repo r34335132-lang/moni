@@ -7,22 +7,39 @@ import { moneyLentSchema, type MoneyLentInput } from '@/src/core/validation/sche
 import { useCreateMoneyLent } from '@/src/hooks/useMoneyLent';
 import { useLanguage } from '@/src/providers/LanguageProvider';
 import { useTheme } from '@/src/hooks/useTheme';
+import { useAuth } from '@/src/providers/AuthProvider';
 import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Input } from '@/src/components/ui/Input';
-import { Button } from '@/src/components/ui/Button';
+import { PrimarySaveButton } from '@/src/components/ui/PrimarySaveButton';
 import { DatePickerField } from '@/src/components/ui/DatePickerField';
+import { LoanDisclaimerBanner } from '@/src/components/LoanDisclaimerBanner';
+import { FormHero, FormSection } from '@/src/components/ui/FormChrome';
+import { AmountCalculator } from '@/src/components/ui/AmountCalculator';
+import { AppText } from '@/src/components/ui/AppText';
 import { getErrorMessage } from '@/src/core/utils/errors';
-import { parseAmount } from '@/src/core/utils/format';
 
 export default function CreateLentMoneyScreen() {
+  const { profile } = useAuth();
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const currency = profile?.currency ?? 'MXN';
   const createLent = useCreateMoneyLent();
   const [lentDate, setLentDate] = useState(new Date());
-  const { control, handleSubmit, setValue, formState: { errors } } = useForm<MoneyLentInput>({
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<MoneyLentInput>({
     resolver: zodResolver(moneyLentSchema),
-    defaultValues: { debtor_name: '', amount: 0, lent_date: new Date().toISOString().split('T')[0], concept: '', notes: '' },
+    defaultValues: {
+      debtor_name: '',
+      amount: 0,
+      lent_date: new Date().toISOString().split('T')[0],
+      concept: '',
+      notes: '',
+    },
   });
 
   const onSubmit = async (data: MoneyLentInput) => {
@@ -39,28 +56,83 @@ export default function CreateLentMoneyScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={t('loans.createLentTitle')} showBack />
       <ScreenContainer>
-        <Controller control={control} name="debtor_name" render={({ field: { onChange, value } }) => (
-          <Input label={t('loans.debtorName')} value={value} onChangeText={onChange} error={errors.debtor_name?.message} />
-        )} />
-        <Controller control={control} name="amount" render={({ field: { onChange, value } }) => (
-          <Input label={t('common.amount')} value={value ? String(value) : ''} onChangeText={(v) => onChange(parseAmount(v) ?? 0)} keyboardType="decimal-pad" error={errors.amount?.message} />
-        )} />
-        <DatePickerField
-          label={t('loans.lentDate')}
-          value={lentDate}
-          maximumDate={new Date()}
-          onChange={(date) => {
-            setLentDate(date);
-            setValue('lent_date', date.toISOString().split('T')[0]);
-          }}
+        <FormHero icon="arrow-up-circle" title={t('loans.lendMoney')} subtitle={t('loans.createLentTitle')} />
+        <LoanDisclaimerBanner />
+
+        <Controller
+          control={control}
+          name="amount"
+          render={({ field: { onChange, value } }) => (
+            <AmountCalculator
+              value={Number(value) || 0}
+              onChange={onChange}
+              currency={currency}
+              showIva={false}
+              tone="income"
+            />
+          )}
         />
-        <Controller control={control} name="concept" render={({ field: { onChange, value } }) => (
-          <Input label={t('loans.concept')} value={value ?? ''} onChangeText={onChange} placeholder={t('loans.conceptPlaceholder')} />
-        )} />
-        <Controller control={control} name="notes" render={({ field: { onChange, value } }) => (
-          <Input label={t('common.noteOptional')} value={value ?? ''} onChangeText={onChange} placeholder={t('loans.notesPlaceholder')} multiline />
-        )} />
-        <Button title={t('loans.register')} onPress={handleSubmit(onSubmit)} loading={createLent.isPending} />
+        {errors.amount?.message ? (
+          <AppText style={{ color: colors.destructive, marginBottom: 12, marginTop: -8 }}>
+            {errors.amount.message}
+          </AppText>
+        ) : null}
+
+        <FormSection>
+          <Controller
+            control={control}
+            name="debtor_name"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                label={t('loans.debtorName')}
+                value={value}
+                onChangeText={onChange}
+                error={errors.debtor_name?.message}
+              />
+            )}
+          />
+          <DatePickerField
+            label={t('loans.lentDate')}
+            value={lentDate}
+            maximumDate={new Date()}
+            onChange={(date) => {
+              setLentDate(date);
+              setValue('lent_date', date.toISOString().split('T')[0]);
+            }}
+          />
+          <Controller
+            control={control}
+            name="concept"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                label={t('loans.concept')}
+                value={value ?? ''}
+                onChangeText={onChange}
+                placeholder={t('loans.conceptPlaceholder')}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="notes"
+            render={({ field: { onChange, value } }) => (
+              <Input
+                label={t('common.noteOptional')}
+                value={value ?? ''}
+                onChangeText={onChange}
+                placeholder={t('loans.notesPlaceholder')}
+                multiline
+              />
+            )}
+          />
+        </FormSection>
+
+        <PrimarySaveButton
+          title={t('loans.register')}
+          icon="checkmark-circle"
+          onPress={handleSubmit(onSubmit)}
+          loading={createLent.isPending}
+        />
       </ScreenContainer>
     </View>
   );

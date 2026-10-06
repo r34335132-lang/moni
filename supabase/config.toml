@@ -1,0 +1,4 @@
+# A minimal config so WhatsApp webhook can be called by Meta without a JWT.
+
+[functions.whatsapp-webhook]
+verify_jwt = false

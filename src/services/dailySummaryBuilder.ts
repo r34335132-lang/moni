@@ -9,7 +9,7 @@ import {
 
 export function buildDailySummaryBody(transactions: Transaction[], currency: string): string {
   if (!transactions.length) {
-    return 'Aún no tienes movimientos hoy. Registra tus gastos e ingresos en MONI.';
+    return 'Aún no tienes movimientos hoy. Registra tus gastos e ingresos en Moni Financiera.';
   }
 
   const income = transactions
@@ -42,5 +42,5 @@ export function buildDailySummaryBody(transactions: Transaction[], currency: str
 }
 
 export function buildDailySummaryTitle(count: number): string {
-  return count > 0 ? `📊 Resumen del día (${count} movimientos)` : '📊 Resumen del día';
+  return count > 0 ? `Resumen del día (${count} movimientos)` : 'Resumen del día';
 }

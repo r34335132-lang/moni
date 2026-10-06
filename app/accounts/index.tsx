@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, Alert, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAccounts, useCreateAccount, useUpdateAccount, useDeleteAccount } from '@/src/hooks/useAccounts';
@@ -12,20 +12,40 @@ import type { AccountInput } from '@/src/core/validation/schemas';
 import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { FormModal } from '@/src/components/ui/FormModal';
-import { Card } from '@/src/components/ui/Card';
 import { Input } from '@/src/components/ui/Input';
 import { Button } from '@/src/components/ui/Button';
 import { PrimarySaveButton } from '@/src/components/ui/PrimarySaveButton';
 import { AmountCalculator } from '@/src/components/ui/AmountCalculator';
 import { EmptyState } from '@/src/components/EmptyState';
-import { formatCurrency } from '@/src/core/utils/format';
+import { Card } from '@/src/components/ui/Card';
+import { AnimatedIn } from '@/src/components/AnimatedIn';
+import { AppText, Font } from '@/src/components/ui/AppText';
+import { MoneyDisplay } from '@/src/components/ui/MoneyDisplay';
 import { getErrorMessage } from '@/src/core/utils/errors';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { IconActionButton } from '@/src/components/ui/IconActionButton';
 
 const ACCOUNT_TYPES: AccountInput['type'][] = ['cash', 'bank', 'credit', 'savings', 'investment'];
 
+const ACCOUNT_TYPE_ICONS: Record<AccountInput['type'], keyof typeof Ionicons.glyphMap> = {
+  cash: 'cash-outline',
+  bank: 'person-circle-outline',
+  credit: 'card-outline',
+  savings: 'leaf-outline',
+  investment: 'trending-up-outline',
+};
+
+const ACCOUNT_TYPE_COLORS: Record<AccountInput['type'], string> = {
+  cash: '#30D158',
+  bank: '#0EA5E9',
+  credit: '#A855F7',
+  savings: '#14B8A6',
+  investment: '#F59E0B',
+};
+
 export default function AccountsScreen() {
   const { profile } = useAuth();
-  const { colors, radius } = useTheme();
+  const { colors } = useTheme();
   const { t } = useLanguage();
   const { data: accounts, isLoading, refetch } = useAccounts();
   const createAccount = useCreateAccount();
@@ -92,7 +112,7 @@ export default function AccountsScreen() {
       if (editing) {
         await updateAccount.mutateAsync({ id: editing.id, input: { name, type } });
       } else {
-        await createAccount.mutateAsync({ name, type, icon: 'business', color: '#22C55E', is_default: false });
+        await createAccount.mutateAsync({ name, type, icon: ACCOUNT_TYPE_ICONS[type] ?? 'person-circle-outline', color: ACCOUNT_TYPE_COLORS[type] ?? '#30D158', is_default: false });
       }
       setShowForm(false);
       setEditing(null);
@@ -150,51 +170,106 @@ export default function AccountsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title={t('accounts.title')} showBack />
+      <ScreenHeader title={t('accounts.title')} showBack subtitle={t('accounts.emptySub')} />
       <ScreenContainer>
-        <PrimarySaveButton title={t('accounts.add')} icon="add-circle" onPress={openCreate} style={{ marginBottom: 12 }} />
+        <AnimatedIn>
+          <PrimarySaveButton title={t('accounts.add')} icon="add-circle" onPress={openCreate} style={{ marginBottom: 12 }} />
+        </AnimatedIn>
 
-        <Pressable
-          onPress={openTransfer}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10,
-            padding: 14,
-            marginBottom: 16,
-            backgroundColor: `${colors.primary}18`,
-            borderRadius: radius,
-            borderWidth: 1,
-            borderColor: colors.primary,
-          }}
-        >
-          <Ionicons name="swap-horizontal" size={22} color={colors.primary} />
-          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 15 }}>{t('accounts.transfer')}</Text>
-        </Pressable>
+        <AnimatedIn index={1}>
+          <PressableScale
+            onPress={openTransfer}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 14,
+              marginBottom: 18,
+              borderRadius: 22,
+              backgroundColor: colors.card,
+              shadowColor: '#000',
+              shadowOpacity: 0.06,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 2,
+            }}
+          >
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 16,
+                backgroundColor: colors.accent,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="swap-horizontal" size={22} color={colors.primary} />
+            </View>
+            <AppText style={{ color: colors.foreground, fontFamily: Font.semibold, fontSize: 15, flex: 1 }}>
+              {t('accounts.transfer')}
+            </AppText>
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+          </PressableScale>
+        </AnimatedIn>
 
         {isLoading ? (
           <ActivityIndicator color={colors.primary} />
         ) : accounts?.length ? (
-          accounts.map((acc) => (
-            <Card key={acc.id} style={{ marginBottom: 10 }}>
-              <Pressable onPress={() => router.push(`/accounts/${acc.id}`)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: 16 }}>{acc.name}</Text>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>
-                    {typeLabels[acc.type] ?? acc.type}
-                    {acc.is_default ? ` · ${t('accounts.defaultAccount')}` : ''}
-                  </Text>
-                </View>
-                <Text style={{ color: Number(acc.balance) < 0 ? '#DC2626' : '#15803D', fontWeight: '700', fontSize: 16, marginRight: 8 }}>
-                  {formatCurrency(Number(acc.balance), profile?.currency)}
-                </Text>
-                <Pressable onPress={() => openEdit(acc)} hitSlop={8} style={{ marginRight: 6 }}>
-                  <Ionicons name="create-outline" size={20} color={colors.mutedForeground} />
-                </Pressable>
-                <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
-              </Pressable>
-            </Card>
-          ))
+          accounts.map((acc, index) => {
+            const accent = ACCOUNT_TYPE_COLORS[acc.type] ?? colors.primary;
+            const icon = ACCOUNT_TYPE_ICONS[acc.type] ?? 'person-circle-outline';
+            const balance = Number(acc.balance);
+            return (
+              <AnimatedIn key={acc.id} index={index + 2}>
+                <PressableScale onPress={() => router.push(`/accounts/${acc.id}`)} scaleTo={0.98}>
+                  <Card style={{ marginBottom: 12 }} padding={14}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 18,
+                          backgroundColor: `${accent}22`,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Ionicons name={icon} size={24} color={accent} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
+                        <AppText style={{ fontFamily: Font.semibold, fontSize: 16 }} numberOfLines={1}>
+                          {acc.name}
+                        </AppText>
+                        <AppText style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>
+                          {typeLabels[acc.type] ?? acc.type}
+                          {acc.is_default ? ` · ${t('accounts.defaultAccount')}` : ''}
+                        </AppText>
+                      </View>
+                      <View style={{ alignItems: 'flex-end', marginRight: 6, maxWidth: 120 }}>
+                        <MoneyDisplay
+                          amount={balance}
+                          currency={profile?.currency ?? 'MXN'}
+                          tone={balance < 0 ? 'expense' : 'income'}
+                          size="sm"
+                          staged={false}
+                          align="right"
+                        />
+                      </View>
+                      <IconActionButton
+                        variant="edit"
+                        size="sm"
+                        onPress={() => openEdit(acc)}
+                        accessibilityLabel={t('accounts.edit')}
+                        style={{ marginRight: 2 }}
+                      />
+                      <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+                    </View>
+                  </Card>
+                </PressableScale>
+              </AnimatedIn>
+            );
+          })
         ) : (
           <EmptyState title={t('accounts.empty')} subtitle={t('accounts.emptySub')} actionLabel={t('accounts.add')} onAction={openCreate} />
         )}
@@ -219,27 +294,33 @@ export default function AccountsScreen() {
         }
       >
         <Input label={t('common.name')} value={name} onChangeText={setName} placeholder={t('accounts.namePlaceholder')} />
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{t('common.type')}</Text>
+        <AppText style={{ fontFamily: Font.medium, fontSize: 14, marginBottom: 8 }}>{t('common.type')}</AppText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-          {ACCOUNT_TYPES.map((accType) => (
-            <Pressable
-              key={accType}
-              onPress={() => setType(accType)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: radius,
-                marginRight: 8,
-                backgroundColor: type === accType ? colors.primary : colors.secondary,
-                borderWidth: 1,
-                borderColor: type === accType ? colors.primary : colors.border,
-              }}
-            >
-              <Text style={{ color: type === accType ? colors.primaryForeground : colors.foreground, fontWeight: '500' }}>
-                {typeLabels[accType]}
-              </Text>
-            </Pressable>
-          ))}
+          {ACCOUNT_TYPES.map((accType) => {
+            const selected = type === accType;
+            return (
+              <PressableScale
+                key={accType}
+                onPress={() => setType(accType)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 980,
+                  marginRight: 8,
+                  backgroundColor: selected ? colors.primary : colors.fill,
+                }}
+              >
+                <AppText
+                  style={{
+                    color: selected ? colors.primaryForeground : colors.foreground,
+                    fontFamily: Font.semibold,
+                  }}
+                >
+                  {typeLabels[accType]}
+                </AppText>
+              </PressableScale>
+            );
+          })}
         </ScrollView>
       </FormModal>
 
@@ -254,44 +335,50 @@ export default function AccountsScreen() {
           </>
         }
       >
-        <Text style={{ color: colors.foreground, fontWeight: '600', marginBottom: 8 }}>{t('accounts.from')}</Text>
+        <AppText style={{ fontFamily: Font.semibold, marginBottom: 8 }}>{t('accounts.from')}</AppText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {accounts?.map((acc) => (
-            <Pressable
-              key={acc.id}
-              onPress={() => setFromId(acc.id)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: radius,
-                backgroundColor: fromId === acc.id ? colors.primary : colors.secondary,
-                borderWidth: 1,
-                borderColor: fromId === acc.id ? colors.primary : colors.border,
-              }}
-            >
-              <Text style={{ color: fromId === acc.id ? colors.primaryForeground : colors.foreground }}>{acc.name}</Text>
-            </Pressable>
-          ))}
+          {accounts?.map((acc) => {
+            const selected = fromId === acc.id;
+            return (
+              <PressableScale
+                key={acc.id}
+                onPress={() => setFromId(acc.id)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 980,
+                  backgroundColor: selected ? colors.primary : colors.fill,
+                }}
+              >
+                <AppText style={{ color: selected ? colors.primaryForeground : colors.foreground, fontFamily: Font.medium }}>
+                  {acc.name}
+                </AppText>
+              </PressableScale>
+            );
+          })}
         </View>
 
-        <Text style={{ color: colors.foreground, fontWeight: '600', marginBottom: 8 }}>{t('accounts.to')}</Text>
+        <AppText style={{ fontFamily: Font.semibold, marginBottom: 8 }}>{t('accounts.to')}</AppText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {accounts?.filter((a) => a.id !== fromId).map((acc) => (
-            <Pressable
-              key={acc.id}
-              onPress={() => setToId(acc.id)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: radius,
-                backgroundColor: toId === acc.id ? colors.primary : colors.secondary,
-                borderWidth: 1,
-                borderColor: toId === acc.id ? colors.primary : colors.border,
-              }}
-            >
-              <Text style={{ color: toId === acc.id ? colors.primaryForeground : colors.foreground }}>{acc.name}</Text>
-            </Pressable>
-          ))}
+          {accounts?.filter((a) => a.id !== fromId).map((acc) => {
+            const selected = toId === acc.id;
+            return (
+              <PressableScale
+                key={acc.id}
+                onPress={() => setToId(acc.id)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 980,
+                  backgroundColor: selected ? colors.primary : colors.fill,
+                }}
+              >
+                <AppText style={{ color: selected ? colors.primaryForeground : colors.foreground, fontFamily: Font.medium }}>
+                  {acc.name}
+                </AppText>
+              </PressableScale>
+            );
+          })}
         </View>
 
         <AmountCalculator value={transferAmount} onChange={setTransferAmount} showIva={false} />

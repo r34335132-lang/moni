@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Pressable, Text, ActivityIndicator, type PressableProps } from 'react-native';
+import { View, ActivityIndicator, type PressableProps, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/src/hooks/useTheme';
-
-const BTN_GREEN = '#22C55E';
-const BTN_TEXT = '#FFFFFF';
+import { PressableScale } from '@/src/components/ui/Glass';
+import { AppText, Font } from '@/src/components/ui/AppText';
 
 interface BigButtonProps extends PressableProps {
   title: string;
@@ -11,68 +11,69 @@ interface BigButtonProps extends PressableProps {
   variant?: 'primary' | 'secondary';
 }
 
-export function BigButton({ title, loading, variant = 'primary', disabled, style, ...props }: BigButtonProps) {
-  const { colors } = useTheme();
+export function BigButton({ title, loading, variant = 'primary', disabled, style, onPress, ...props }: BigButtonProps) {
+  const { colors, radius } = useTheme();
   const isPrimary = variant === 'primary';
+  const inactive = disabled || loading;
 
-  if (isPrimary) {
-    return (
-      <Pressable disabled={disabled || loading} style={[{ width: '100%' }, style as object]} {...props}>
+  return (
+    <PressableScale
+      disabled={inactive}
+      onPress={onPress}
+      scaleTo={0.97}
+      style={[{ width: '100%', opacity: inactive ? 0.72 : 1 }, style as object]}
+      {...props}
+    >
+      <View
+        style={{
+          borderRadius: radius,
+          overflow: 'hidden',
+          minHeight: 56,
+          shadowColor: isPrimary ? colors.primary : '#000',
+          shadowOpacity: isPrimary ? 0.35 : 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: isPrimary ? 6 : 2,
+        }}
+      >
+        {isPrimary ? (
+          <LinearGradient
+            colors={[colors.primary, '#1FA34A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
+        )}
         <View
           style={{
-            backgroundColor: BTN_GREEN,
-            paddingVertical: 18,
-            paddingHorizontal: 24,
-            borderRadius: 16,
+            paddingVertical: 17,
+            paddingHorizontal: 20,
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: 58,
-            borderWidth: 2,
-            borderColor: '#16A34A',
-            opacity: disabled || loading ? 0.7 : 1,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 8,
-            elevation: 8,
+            minHeight: 56,
+            borderWidth: isPrimary ? 0 : StyleSheet.hairlineWidth,
+            borderColor: colors.border,
+            borderRadius: radius,
           }}
         >
           {loading ? (
-            <ActivityIndicator color={BTN_TEXT} />
+            <ActivityIndicator color={isPrimary ? colors.primaryForeground : colors.foreground} />
           ) : (
-            <Text style={{ color: BTN_TEXT, fontSize: 18, fontWeight: '800' }}>{title}</Text>
+            <AppText
+              style={{
+                color: isPrimary ? colors.primaryForeground : colors.foreground,
+                fontSize: 17,
+                fontFamily: Font.semibold,
+                letterSpacing: -0.2,
+              }}
+            >
+              {title}
+            </AppText>
           )}
         </View>
-      </Pressable>
-    );
-  }
-
-  return (
-    <Pressable
-      disabled={disabled || loading}
-      style={({ pressed }) => [
-        {
-          backgroundColor: colors.secondary,
-          paddingVertical: 18,
-          paddingHorizontal: 24,
-          borderRadius: 16,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed || disabled ? 0.85 : 1,
-          borderWidth: 1,
-          borderColor: colors.border,
-          minHeight: 58,
-          width: '100%',
-        },
-        style as object,
-      ]}
-      {...props}
-    >
-      {loading ? (
-        <ActivityIndicator color={colors.foreground} />
-      ) : (
-        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: '700' }}>{title}</Text>
-      )}
-    </Pressable>
+      </View>
+    </PressableScale>
   );
 }

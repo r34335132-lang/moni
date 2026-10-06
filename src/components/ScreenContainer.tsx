@@ -27,7 +27,7 @@ export function ScreenContainer({
       contentContainerStyle={[
         {
           paddingTop: padded ? 16 : 0,
-          paddingHorizontal: padded ? 16 : 0,
+          paddingHorizontal: padded ? 20 : 0,
           paddingBottom: bottomPad + 80,
           flexGrow: 1,
         },

@@ -1,26 +1,22 @@
 import type { Account, Category } from '@/src/core/types/entities';
+import {
+  type CategoryKind,
+  fallbackCategory,
+  normalizeText,
+  pickCategory,
+  suggestCategoryName as suggestFromRules,
+} from '@/supabase/functions/_shared/categoryRules';
 
-export type PaymentMethod = 'cash' | 'card';
-
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  Comida: ['comida', 'restaurante', 'comí', 'almorcé', 'desayuné', 'cena', 'taqueria', 'tacos', 'pizza', 'hamburguesa', 'starbucks', 'cafeteria', 'café'],
-  Supermercado: ['super', 'walmart', 'soriana', 'chedraui', 'oxxo', 'seven', '7-eleven', 'despensa', 'mercado', 'bodega', 'aurrera', 'heb', 'costco', 'sam\'s'],
-  Gasolina: ['gasolina', 'gas', 'combustible', 'pemex', 'shell', 'bp', 'mobil'],
-  Transporte: ['uber', 'taxi', 'metro', 'camión', 'camion', 'transporte', 'didi', 'cabify', 'autobus', 'estacionamiento', 'caseta'],
-  Entretenimiento: ['cine', 'netflix', 'spotify', 'juego', 'entretenimiento', 'concierto', 'bar', 'antro'],
-  Salud: ['farmacia', 'doctor', 'medicina', 'salud', 'hospital', 'simi', 'guadalajara', 'consulta'],
-  Servicios: ['luz', 'agua', 'internet', 'teléfono', 'telefono', 'cfe', 'telmex', 'totalplay', 'izzi', 'servicio'],
-  Hogar: ['renta', 'casa', 'hogar', 'muebles', 'home depot', 'coppel'],
-  Suscripciones: ['suscripción', 'suscripcion', 'mensualidad', 'membresía', 'membresia'],
-  Compras: ['compras', 'amazon', 'mercadolibre', 'shein', 'temu', 'liverpool', 'suburbia'],
-  Educación: ['escuela', 'colegio', 'universidad', 'curso', 'libros'],
-  Salario: ['salario', 'sueldo', 'nómina', 'nomina', 'quincena'],
-  Freelance: ['freelance', 'honorarios', 'factura'],
-};
+export type PaymentMethod = 'cash' | 'card' | 'wallet';
 
 const CASH_KEYWORDS = [
   'efectivo', 'cash', 'billete', 'monedas', 'en mano', 'pago en efectivo',
   'recibido', 'cambio $', 'cambio:',
+];
+const WALLET_KEYWORDS = [
+  'apple pay', 'applepay', 'google pay', 'googlepay', 'gpay', 'samsung pay', 'samsungpay',
+  'wallet pay', 'pago con wallet', 'wallet', 'contactless', 'sin contacto', 'tap to pay',
+  'pago con apple', 'pago con google',
 ];
 const CARD_KEYWORDS = [
   'tarjeta', 'crédito', 'credito', 'débito', 'debito', 'tdc', 'visa', 'mastercard',
@@ -31,32 +27,34 @@ const CARD_KEYWORDS = [
 export function detectPaymentMethod(text: string): PaymentMethod | null {
   const lower = text.toLowerCase();
   if (CASH_KEYWORDS.some((kw) => lower.includes(kw))) return 'cash';
+  if (WALLET_KEYWORDS.some((kw) => lower.includes(kw))) return 'wallet';
   if (CARD_KEYWORDS.some((kw) => lower.includes(kw))) return 'card';
   return null;
 }
 
-export function suggestCategoryName(text: string, categories: { name: string }[] = []): string | null {
-  const lower = text.toLowerCase();
-  let best: { name: string; len: number } | null = null;
-  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    for (const kw of keywords) {
-      if (lower.includes(kw) && (!best || kw.length > best.len)) {
-        best = { name: category, len: kw.length };
-      }
-    }
-  }
-  if (best) return best.name;
-  const named = categories.find((c) => c.name.length > 2 && lower.includes(c.name.toLowerCase()));
-  return named?.name ?? null;
+export function suggestCategoryName(
+  text: string,
+  categories: { name: string; type?: string | null; user_id?: string | null }[] = [],
+  kind?: CategoryKind,
+): string | null {
+  return suggestFromRules(text, categories, kind);
 }
 
-export function matchCategoryId(name: string | null, categories: Category[]): string | null {
+export function matchCategoryId(name: string | null, categories: Category[], kind?: CategoryKind): string | null {
   if (!name || !categories.length) return null;
-  const needle = name.toLowerCase();
-  const exact = categories.find((c) => c.name.toLowerCase() === needle);
+  const needle = normalizeText(name);
+  const exact = categories.find((c) => normalizeText(c.name) === needle);
   if (exact) return exact.id;
-  const partial = categories.find((c) => c.name.toLowerCase().includes(needle) || needle.includes(c.name.toLowerCase()));
-  return partial?.id ?? null;
+  // e.g. a "Deportes" suggestion for a user without that category resolves to Salud.
+  return pickCategory(name, categories, kind)?.id ?? null;
+}
+
+/** "Otros" rather than whatever category happens to be first in the list. */
+export function fallbackCategoryId(categories: Category[], kind?: CategoryKind): string | null {
+  return fallbackCategory(categories, kind)?.id
+    ?? categories.find((c) => !kind || c.type === kind || c.type === 'both')?.id
+    ?? categories[0]?.id
+    ?? null;
 }
 
 export function suggestAccountId(
@@ -78,7 +76,7 @@ export function suggestAccountId(
     );
   }
 
-  if (method === 'card') {
+  if (method === 'card' || method === 'wallet') {
     return (
       accounts.find((a) => a.type === 'credit')?.id ??
       accounts.find((a) => a.type === 'bank')?.id ??

@@ -10,5 +10,8 @@ export function useTheme() {
     isDark,
     colors: c,
     radius: colors.radius,
+    radiusSm: colors.radiusSm,
+    radiusLg: colors.radiusLg,
+    radiusPill: colors.radiusPill,
   };
 }

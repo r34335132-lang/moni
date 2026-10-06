@@ -1,6 +1,7 @@
 import { supabase } from '@/src/data/supabase/client';
 import { handleSupabaseError } from '@/src/core/utils/errors';
 import { logger } from '@/src/core/utils/logger';
+import { env } from '@/src/core/config/env';
 import type { LoginInput, RegisterInput } from '@/src/core/validation/schemas';
 
 export const authService = {
@@ -18,7 +19,13 @@ export const authService = {
     const { data, error } = await supabase.auth.signUp({
       email: input.email,
       password: input.password,
-      options: { data: { full_name: input.fullName } },
+      options: {
+        data: {
+          full_name: input.fullName,
+          terms_accepted_at: new Date().toISOString(),
+          terms_version: env.termsVersion,
+        },
+      },
     });
     if (error) handleSupabaseError(error);
     logger.info('Auth', 'User registered', { userId: data.user?.id });
@@ -26,8 +33,11 @@ export const authService = {
   },
 
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) handleSupabaseError(error);
+    const { error } = await supabase.auth.signOut({ scope: 'global' });
+    if (error) {
+      const local = await supabase.auth.signOut({ scope: 'local' });
+      if (local.error) handleSupabaseError(error);
+    }
     logger.info('Auth', 'User signed out');
   },
 

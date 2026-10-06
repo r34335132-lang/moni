@@ -2,8 +2,8 @@ import { format, parseISO, isValid } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import type { AppLocale } from '@/src/core/i18n/types';
 
-export const INCOME_COLOR = '#15803D';
-export const EXPENSE_COLOR = '#DC2626';
+export const INCOME_COLOR = '#2DBE5A';
+export const EXPENSE_COLOR = '#E5484D';
 
 let currentLocale: AppLocale = 'es';
 

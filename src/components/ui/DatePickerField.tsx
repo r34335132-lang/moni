@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Platform, Modal } from 'react-native';
+import { View, Pressable, Platform, Modal } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDate, getFormatLocale } from '@/src/core/utils/format';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useLanguage } from '@/src/providers/LanguageProvider';
+import { AppText, Font } from '@/src/components/ui/AppText';
 
 interface DatePickerFieldProps {
   label?: string;
@@ -52,35 +53,47 @@ export function DatePickerField({
   return (
     <View style={{ marginBottom: 14 }}>
       {fieldLabel ? (
-        <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: '500', marginBottom: 6 }}>
+        <AppText style={{ color: colors.mutedForeground, fontSize: 13, fontFamily: Font.semibold, marginBottom: 8 }}>
           {fieldLabel}
-        </Text>
+        </AppText>
       ) : null}
       <Pressable
         onPress={openPicker}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.input,
+          backgroundColor: colors.fill,
           borderRadius: radius,
           paddingHorizontal: 14,
-          paddingVertical: 14,
-          borderWidth: 1,
-          borderColor: error ? colors.destructive : colors.border,
+          paddingVertical: 15,
+          borderWidth: error ? 1.5 : 0,
+          borderColor: error ? colors.destructive : 'transparent',
           gap: 10,
+          minHeight: 54,
         }}
       >
-        <Ionicons name="calendar-outline" size={22} color={colors.primary} />
-        <Text style={{ color: colors.foreground, fontSize: 16, flex: 1 }}>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: colors.accent,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="calendar" size={18} color={colors.primary} />
+        </View>
+        <AppText style={{ color: colors.foreground, fontSize: 16, flex: 1, fontFamily: Font.medium }}>
           {formatDate(value, 'EEEE, d MMMM yyyy')}
-        </Text>
+        </AppText>
         <Ionicons name="chevron-down" size={18} color={colors.mutedForeground} />
       </Pressable>
       {error ? (
-        <Text style={{ color: colors.destructive, fontSize: 12, marginTop: 4 }}>{error}</Text>
+        <AppText style={{ color: colors.destructive, fontSize: 12, marginTop: 4 }}>{error}</AppText>
       ) : null}
 
-      {Platform.OS === 'android' && show && (
+      {Platform.OS === 'android' && show ? (
         <DateTimePicker
           value={value}
           mode="date"
@@ -89,9 +102,9 @@ export function DatePickerField({
           maximumDate={maximumDate}
           minimumDate={minimumDate}
         />
-      )}
+      ) : null}
 
-      {Platform.OS === 'ios' && (
+      {Platform.OS === 'ios' ? (
         <Modal visible={show} transparent animationType="slide">
           <Pressable
             style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
@@ -100,8 +113,8 @@ export function DatePickerField({
             <Pressable
               style={{
                 backgroundColor: colors.card,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
+                borderTopLeftRadius: 28,
+                borderTopRightRadius: 28,
                 paddingBottom: 34,
               }}
               onPress={(e) => e.stopPropagation()}
@@ -112,16 +125,16 @@ export function DatePickerField({
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
                 }}
               >
                 <Pressable onPress={() => setShow(false)}>
-                  <Text style={{ color: colors.mutedForeground, fontSize: 16 }}>{t('common.cancel')}</Text>
+                  <AppText style={{ color: colors.mutedForeground, fontSize: 16 }}>{t('common.cancel')}</AppText>
                 </Pressable>
-                <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '600' }}>{fieldLabel}</Text>
+                <AppText style={{ fontFamily: Font.semibold, fontSize: 16 }}>{fieldLabel}</AppText>
                 <Pressable onPress={confirmIOS}>
-                  <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '600' }}>{t('common.done')}</Text>
+                  <AppText style={{ color: colors.primary, fontSize: 16, fontFamily: Font.semibold }}>
+                    {t('common.done')}
+                  </AppText>
                 </Pressable>
               </View>
               <DateTimePicker
@@ -132,13 +145,13 @@ export function DatePickerField({
                 maximumDate={maximumDate}
                 minimumDate={minimumDate}
                 locale={pickerLocale}
-                themeVariant={colors.background === '#0A0A0A' ? 'dark' : 'light'}
+                themeVariant={colors.background === '#0A0A0B' || colors.background === '#0A0A0A' ? 'dark' : 'light'}
                 style={{ alignSelf: 'center' }}
               />
             </Pressable>
           </Pressable>
         </Modal>
-      )}
+      ) : null}
     </View>
   );
 }

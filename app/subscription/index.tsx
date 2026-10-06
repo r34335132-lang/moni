@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Alert, ActivityIndicator } from 'react-native';
+import { View, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/providers/AuthProvider';
@@ -9,12 +9,18 @@ import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Card } from '@/src/components/ui/Card';
 import { Button } from '@/src/components/ui/Button';
+import { AppText, Font } from '@/src/components/ui/AppText';
+import { AnimatedIn } from '@/src/components/AnimatedIn';
 import { subscriptionService } from '@/src/services/subscriptionService';
 import { getErrorMessage } from '@/src/core/utils/errors';
 
+/**
+ * Premium is sold only via store In-App Purchases (RevenueCat → App Store / Google Play).
+ * Never collect card numbers or payment forms inside the app.
+ */
 export default function SubscriptionScreen() {
   const { user, isPremium, refreshProfile } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
@@ -98,43 +104,115 @@ export default function SubscriptionScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={t('subscription.title')} showBack />
       <ScreenContainer>
-        <View style={{ alignItems: 'center', marginBottom: 24 }}>
-          <Ionicons name="diamond" size={48} color={colors.primary} />
-          <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: '700', marginTop: 12 }}>
-            {isPremium ? t('subscription.active') : premiumReady ? t('subscription.unlock') : t('subscription.comingSoonTitle')}
-          </Text>
-        </View>
-
-        {premiumFeatures.map((feature) => (
-          <View key={feature} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
-            <Text style={{ color: colors.foreground, fontSize: 15 }}>{feature}</Text>
+        <AnimatedIn>
+          <View
+            style={{
+              alignItems: 'center',
+              marginBottom: 22,
+              backgroundColor: colors.card,
+              borderRadius: 28,
+              paddingVertical: 28,
+              paddingHorizontal: 20,
+              shadowColor: '#000',
+              shadowOpacity: isDark ? 0.28 : 0.06,
+              shadowRadius: 14,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 3,
+            }}
+          >
+            <View
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 36,
+                backgroundColor: colors.accent,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 14,
+              }}
+            >
+              <Ionicons name="diamond" size={32} color={colors.primary} />
+            </View>
+            <AppText style={{ fontFamily: Font.bold, fontSize: 24, letterSpacing: -0.4, textAlign: 'center' }}>
+              {isPremium
+                ? t('subscription.active')
+                : premiumReady
+                  ? t('subscription.unlock')
+                  : t('subscription.comingSoonTitle')}
+            </AppText>
           </View>
-        ))}
+        </AnimatedIn>
 
-        {!isPremium && premiumReady && (
-          <View style={{ marginTop: 24, gap: 12 }}>
-            <Button title={t('subscription.getPremium')} onPress={handlePurchase} loading={purchasing} />
-            <Button title={t('subscription.restore')} variant="ghost" onPress={handleRestore} loading={purchasing} />
-          </View>
-        )}
-
-        {!isPremium && !premiumReady ? (
-          <Card style={{ marginTop: 24, borderColor: colors.border, borderWidth: 1 }}>
-            <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '700', marginBottom: 8 }}>
-              {t('subscription.comingSoonTitle')}
-            </Text>
-            <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20 }}>
-              {t('subscription.comingSoonBody')}
-            </Text>
+        <AnimatedIn index={1}>
+          <Card style={{ marginBottom: 16 }} padding={18}>
+            {premiumFeatures.map((feature, i) => (
+              <View
+                key={feature}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginBottom: i === premiumFeatures.length - 1 ? 0 : 14,
+                }}
+              >
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: colors.accent,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
+                </View>
+                <AppText style={{ flex: 1, fontSize: 15, fontFamily: Font.medium }}>{feature}</AppText>
+              </View>
+            ))}
           </Card>
+        </AnimatedIn>
+
+        <AnimatedIn index={2}>
+          <Card style={{ marginBottom: 12 }} padding={16}>
+            <AppText style={{ fontFamily: Font.bold, fontSize: 15, marginBottom: 6 }}>
+              {t('subscription.iapOnlyTitle')}
+            </AppText>
+            <AppText style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 19 }}>
+              {t('subscription.iapOnlyBody')}
+            </AppText>
+          </Card>
+        </AnimatedIn>
+
+        {!isPremium && premiumReady ? (
+          <AnimatedIn index={3}>
+            <View style={{ marginTop: 8, gap: 10 }}>
+              <Button title={t('subscription.getPremium')} onPress={handlePurchase} loading={purchasing} />
+              <Button title={t('subscription.restore')} variant="ghost" onPress={handleRestore} loading={purchasing} />
+            </View>
+          </AnimatedIn>
         ) : null}
 
-        <Card style={{ marginTop: 24 }}>
-          <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
-            {t('subscription.paymentNotice')}
-          </Text>
-        </Card>
+        {!isPremium && !premiumReady ? (
+          <AnimatedIn index={3}>
+            <Card style={{ marginTop: 8 }} padding={16}>
+              <AppText style={{ fontFamily: Font.bold, fontSize: 16, marginBottom: 8 }}>
+                {t('subscription.comingSoonTitle')}
+              </AppText>
+              <AppText style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 20 }}>
+                {t('subscription.comingSoonBody')}
+              </AppText>
+            </Card>
+          </AnimatedIn>
+        ) : null}
+
+        <AnimatedIn index={4}>
+          <Card style={{ marginTop: 18 }} padding={16}>
+            <AppText style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 18 }}>
+              {t('subscription.paymentNotice')}
+            </AppText>
+          </Card>
+        </AnimatedIn>
       </ScreenContainer>
     </View>
   );

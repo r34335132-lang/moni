@@ -28,6 +28,8 @@ export interface Profile {
   currency: string;
   avatar_url: string | null;
   is_premium: boolean;
+  phone_e164?: string | null;
+  whatsapp_linked_at?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -234,6 +236,12 @@ export interface DashboardStats {
   nextPayment: { amount: number; date: string; lender: string } | null;
   budgetRemaining: number;
   savingGoalsProgress: number;
+  todayIncome: number;
+  todayExpenses: number;
+  todayCount: number;
+  savingsSaved: number;
+  savingsTarget: number;
+  savingGoalsCount: number;
 }
 
 export interface ParsedVoiceTransaction {
@@ -243,7 +251,7 @@ export interface ParsedVoiceTransaction {
   date: string | null;
   description: string | null;
   type: 'income' | 'expense';
-  paymentMethod: 'cash' | 'card' | null;
+  paymentMethod: 'cash' | 'card' | 'wallet' | null;
 }
 
 export interface ParsedReceiptData {
@@ -252,7 +260,7 @@ export interface ParsedReceiptData {
   date: string | null;
   currency: string | null;
   items: Array<{ name: string; price: number }>;
-  paymentMethod: 'cash' | 'card' | null;
+  paymentMethod: 'cash' | 'card' | 'wallet' | null;
   rawText: string;
 }
 
