@@ -19,6 +19,7 @@ import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import { AuthProvider } from '@/src/providers/AuthProvider';
 import { LanguageProvider } from '@/src/providers/LanguageProvider';
 import { NotificationProvider } from '@/src/providers/NotificationProvider';
+import { TutorialProvider } from '@/src/providers/TutorialProvider';
 import { validateEnv } from '@/src/core/config/env';
 import { installGlobalTypography } from '@/src/components/ui/AppText';
 
@@ -56,32 +57,34 @@ export default function RootLayout() {
               <KeyboardProvider>
                 <AuthProvider>
                   <NotificationProvider>
-                    <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-                    <Stack screenOptions={{ headerShown: false }}>
-                      <Stack.Screen name="index" />
-                      <Stack.Screen name="(auth)" />
-                      <Stack.Screen name="(tabs)" />
-                      <Stack.Screen name="transaction/add-manual" options={{ presentation: 'fullScreenModal' }} />
-                      <Stack.Screen name="transaction/add-voice" options={{ presentation: 'fullScreenModal' }} />
-                      <Stack.Screen name="transaction/add-photo" options={{ presentation: 'fullScreenModal' }} />
-                      <Stack.Screen name="loans/create-borrowed" options={{ presentation: 'modal' }} />
-                      <Stack.Screen name="loans/create-lent" options={{ presentation: 'modal' }} />
-                      <Stack.Screen name="loans/[id]" />
-                      <Stack.Screen name="budgets/create" options={{ presentation: 'modal' }} />
-                      <Stack.Screen name="savings-goals/create" options={{ presentation: 'modal' }} />
-                      <Stack.Screen name="savings-goals/index" />
-                      <Stack.Screen name="accounts/index" />
-                      <Stack.Screen name="accounts/[id]" />
-                      <Stack.Screen name="categories/index" />
-                      <Stack.Screen name="reports/index" />
-                      <Stack.Screen name="beneficiaries/index" />
-                      <Stack.Screen name="beneficiaries/[id]" />
-                      <Stack.Screen name="minigame/index" />
-                      <Stack.Screen name="bank/index" />
-                      <Stack.Screen name="whatsapp/index" />
-                      <Stack.Screen name="subscription/index" options={{ presentation: 'modal' }} />
-                      <Stack.Screen name="reminders/index" />
-                    </Stack>
+                    <TutorialProvider>
+                      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+                      <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="index" />
+                        <Stack.Screen name="(auth)" />
+                        <Stack.Screen name="(tabs)" />
+                        <Stack.Screen name="transaction/add-manual" options={{ presentation: 'fullScreenModal' }} />
+                        <Stack.Screen name="transaction/add-voice" options={{ presentation: 'fullScreenModal' }} />
+                        <Stack.Screen name="transaction/add-photo" options={{ presentation: 'fullScreenModal' }} />
+                        <Stack.Screen name="loans/create-borrowed" options={{ presentation: 'modal' }} />
+                        <Stack.Screen name="loans/create-lent" options={{ presentation: 'modal' }} />
+                        <Stack.Screen name="loans/[id]" />
+                        <Stack.Screen name="budgets/create" options={{ presentation: 'modal' }} />
+                        <Stack.Screen name="savings-goals/create" options={{ presentation: 'modal' }} />
+                        <Stack.Screen name="savings-goals/index" />
+                        <Stack.Screen name="accounts/index" />
+                        <Stack.Screen name="accounts/[id]" />
+                        <Stack.Screen name="categories/index" />
+                        <Stack.Screen name="reports/index" />
+                        <Stack.Screen name="beneficiaries/index" />
+                        <Stack.Screen name="beneficiaries/[id]" />
+                        <Stack.Screen name="minigame/index" />
+                        <Stack.Screen name="bank/index" />
+                        <Stack.Screen name="whatsapp/index" />
+                        <Stack.Screen name="subscription/index" options={{ presentation: 'modal' }} />
+                        <Stack.Screen name="reminders/index" />
+                      </Stack>
+                    </TutorialProvider>
                   </NotificationProvider>
                 </AuthProvider>
               </KeyboardProvider>

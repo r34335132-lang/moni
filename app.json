@@ -2,7 +2,7 @@
   "expo": {
     "name": "Moni Financiera",
     "slug": "moni",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "moni",
@@ -15,8 +15,8 @@
         "CFBundleDisplayName": "Moni Financiera",
         "NSMicrophoneUsageDescription": "Moni Financiera solo usa el micrófono para adjuntar notas de voz a tus transacciones personales.",
         "NSSpeechRecognitionUsageDescription": "Moni Financiera usa el reconocimiento de voz únicamente para convertir notas de voz en datos de tus transacciones personales.",
-        "NSCameraUsageDescription": "Moni Financiera solo usa la cámara para adjuntar fotos de recibos a tus transacciones personales.",
-        "NSPhotoLibraryUsageDescription": "Moni Financiera solo usa tu galería para adjuntar fotos de recibos a tus transacciones personales.",
+        "NSCameraUsageDescription": "Moni Financiera usa la cámara para adjuntar fotos de recibos a tus transacciones y para tomar tu foto de perfil.",
+        "NSPhotoLibraryUsageDescription": "Moni Financiera usa tu galería para adjuntar fotos de recibos a tus transacciones y para elegir tu foto de perfil.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -52,8 +52,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Moni Financiera solo usa tu galería para adjuntar fotos de recibos a tus transacciones personales.",
-          "cameraPermission": "Moni Financiera solo usa la cámara para adjuntar fotos de recibos a tus transacciones personales."
+          "photosPermission": "Moni Financiera usa tu galería para adjuntar fotos de recibos a tus transacciones y para elegir tu foto de perfil.",
+          "cameraPermission": "Moni Financiera usa la cámara para adjuntar fotos de recibos a tus transacciones y para tomar tu foto de perfil."
         }
       ],
       [

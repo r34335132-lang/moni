@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/descargar", "destination": "https://apps.apple.com/app/moni-financiera/id6794676189", "permanent": false },
+    { "source": "/ios", "destination": "https://apps.apple.com/app/moni-financiera/id6794676189", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/(moni.mp4|poster.jpg|icon.png|apple-touch-icon.png)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+    }
+  ]
+}

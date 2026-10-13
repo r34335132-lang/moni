@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Moni Financiera · Tus finanzas, en orden</title>
+  <meta name="description" content="Registra tus gastos con tu voz, una foto del ticket o un WhatsApp. Descarga Moni Financiera gratis en el App Store." />
+  <meta name="theme-color" content="#0A0A0B" />
+  <meta name="apple-itunes-app" content="app-id=6794676189" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Moni Financiera" />
+  <meta property="og:description" content="¿Sabes realmente en qué se te va tu dinero? Descarga Moni gratis en el App Store." />
+  <meta property="og:image" content="/poster.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --card: #141416;
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #f5f5f7;
+      --muted: #a1a1aa;
+      --green: #2dbe5a;
+      --mint: #3ddb6c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      min-height: 100svh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    .glow {
+      position: fixed;
+      inset: -20vh -30vw auto;
+      height: 80vh;
+      background: radial-gradient(ellipse at 50% 30%, rgba(45, 190, 90, 0.32), transparent 62%);
+      filter: blur(10px);
+      pointer-events: none;
+      animation: breathe 7s ease-in-out infinite;
+      z-index: 0;
+    }
+    .dots {
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+      background-size: 22px 22px;
+      mask-image: linear-gradient(to bottom, #000 0%, transparent 75%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes breathe { 50% { opacity: 0.65; transform: scale(1.06); } }
+
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: calc(env(safe-area-inset-top) + 18px) 20px 140px;
+      display: grid;
+      grid-template-areas: 'brand' 'phone' 'content' 'footer';
+      gap: 22px;
+      align-items: center;
+    }
+    .brand { grid-area: brand; justify-self: center; }
+    .phone { grid-area: phone; }
+    .content { grid-area: content; }
+    footer { grid-area: footer; }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { width: 46px; height: 46px; border-radius: 13px; box-shadow: 0 8px 24px rgba(45, 190, 90, 0.25); }
+    .brand b { display: block; font-size: 17px; font-weight: 800; letter-spacing: -0.2px; }
+    .brand span { font-size: 13px; color: var(--muted); }
+
+    h1 {
+      font-size: clamp(30px, 8.4vw, 54px);
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: -1.4px;
+    }
+    h1 em { font-style: normal; color: var(--mint); }
+    .lead { margin-top: 14px; font-size: 16px; line-height: 1.55; color: var(--muted); max-width: 440px; }
+
+    .phone {
+      position: relative;
+      width: min(100%, 360px, calc(68svh * 9 / 16));
+      margin: 0 auto;
+      aspect-ratio: 9 / 16;
+      border-radius: 34px;
+      padding: 8px;
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03));
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line), 0 0 90px rgba(45, 190, 90, 0.18);
+    }
+    .phone video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 27px;
+      background: #000;
+      display: block;
+    }
+    .sound {
+      position: absolute;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(10, 10, 11, 0.62);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: #fff;
+      font: 700 14px 'Plus Jakarta Sans', system-ui, sans-serif;
+      cursor: pointer;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .sound.hidden { opacity: 0; pointer-events: none; transform: translate(-50%, 8px); }
+    .sound svg { width: 18px; height: 18px; }
+
+    .store {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      height: 62px;
+      padding: 0 24px 0 20px;
+      border-radius: 16px;
+      background: #000;
+      color: #fff;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 14px 34px rgba(0, 0, 0, 0.45);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .store:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 18px 40px rgba(0, 0, 0, 0.5); }
+    .store:active { transform: scale(0.98); }
+    .store svg { width: 30px; height: 30px; flex: none; }
+    .store small { display: block; font-size: 11px; font-weight: 600; opacity: 0.85; letter-spacing: 0.2px; }
+    .store strong { display: block; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.05; }
+    .cta { margin-top: 26px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .free { font-size: 13px; color: var(--muted); }
+    .android { display: none; font-size: 13px; color: var(--muted); }
+    .is-android .android { display: block; }
+
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; }
+    .feature {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    .feature i {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: rgba(45, 190, 90, 0.16);
+      color: var(--mint);
+      margin-bottom: 10px;
+    }
+    .feature i svg { width: 18px; height: 18px; }
+    .feature b { display: block; font-size: 14px; font-weight: 700; }
+    .feature span { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+
+    footer { text-align: center; font-size: 12px; color: #6b6b76; margin-top: 8px; }
+
+    .sticky {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px);
+      background: rgba(10, 10, 11, 0.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 -1px 0 var(--line);
+      transform: translateY(110%);
+      transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .sticky.show { transform: none; }
+    .sticky img { width: 40px; height: 40px; border-radius: 11px; }
+    .sticky div { flex: 1; min-width: 0; }
+    .sticky b { display: block; font-size: 14px; }
+    .sticky span { display: block; font-size: 12px; color: var(--muted); }
+    .sticky a {
+      padding: 11px 18px;
+      border-radius: 999px;
+      background: var(--green);
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      box-shadow: 0 8px 22px rgba(45, 190, 90, 0.4);
+    }
+
+    .reveal { opacity: 0; transform: translateY(18px); animation: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+    .d1 { animation-delay: 0.08s; } .d2 { animation-delay: 0.18s; } .d3 { animation-delay: 0.28s; } .d4 { animation-delay: 0.38s; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+
+    @media (min-width: 880px) {
+      main {
+        grid-template-columns: 1.05fr 0.95fr;
+        grid-template-areas: 'brand phone' 'content phone' 'footer footer';
+        grid-template-rows: auto 1fr auto;
+        column-gap: 56px;
+        row-gap: 28px;
+        padding-top: 56px;
+        padding-bottom: 80px;
+      }
+      .brand { justify-self: start; align-self: end; }
+      .content { align-self: start; }
+      .phone { width: min(100%, 360px, calc(80vh * 9 / 16)); }
+      .sticky { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .glow { animation: none; }
+      .reveal { animation: none; opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="dots" aria-hidden="true"></div>
+
+  <main>
+    <div class="brand reveal">
+      <img src="/icon.png" alt="" width="46" height="46" />
+      <div>
+        <b>Moni Financiera</b>
+        <span>Tus finanzas, en orden</span>
+      </div>
+    </div>
+
+    <div class="phone reveal d1">
+      <video id="promo" src="/moni.mp4" poster="/poster.jpg" autoplay muted loop playsinline preload="auto"></video>
+      <button class="sound" id="sound" type="button" aria-label="Activar sonido">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
+        Activar sonido
+      </button>
+    </div>
+
+    <section class="content">
+      <h1 class="reveal d1">¿Sabes realmente en qué se te va <em>tu dinero?</em></h1>
+      <p class="lead reveal d2">Anota un gasto diciéndolo en voz alta, tomándole foto al ticket o mandando un WhatsApp. Moni lo acomoda por ti.</p>
+
+      <div class="cta reveal d3" id="cta">
+        <a class="store" id="store" href="https://apps.apple.com/app/moni-financiera/id6794676189" aria-label="Descargar en el App Store">
+          <svg viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+          <div>
+            <small>Descárgalo en el</small>
+            <strong>App Store</strong>
+          </div>
+        </a>
+        <span class="free">Gratis · iPhone</span>
+        <span class="android">¿Tienes Android? Muy pronto estará disponible.</span>
+      </div>
+
+      <div class="features reveal d4">
+        <div class="feature">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></i>
+          <b>Con tu voz</b>
+          <span>“Gasté 80 en Starbucks” y listo.</span>
+        </div>
+        <div class="feature">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h16v20l-3-2-3 2-2-2-2 2-3-2-3 2z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></i>
+          <b>Foto del ticket</b>
+          <span>Lee el total y la tienda.</span>
+        </div>
+        <div class="feature">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg></i>
+          <b>Por WhatsApp</b>
+          <span>Mándale un mensaje a Moni.</span>
+        </div>
+        <div class="feature">
+          <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg></i>
+          <b>Presupuestos</b>
+          <span>Metas, préstamos y reportes.</span>
+        </div>
+      </div>
+    </section>
+
+    <footer>© Moni Financiera</footer>
+  </main>
+
+  <div class="sticky" id="sticky" aria-hidden="true">
+    <img src="/icon.png" alt="" />
+    <div>
+      <b>Moni Financiera</b>
+      <span>Gratis en el App Store</span>
+    </div>
+    <a href="https://apps.apple.com/app/moni-financiera/id6794676189" tabindex="-1">Descargar</a>
+  </div>
+
+  <script>
+    (function () {
+      var ua = navigator.userAgent || '';
+      if (/android/i.test(ua)) document.documentElement.classList.add('is-android');
+
+      var video = document.getElementById('promo');
+      var sound = document.getElementById('sound');
+
+      function enableSound() {
+        video.muted = false;
+        video.volume = 1;
+        var p = video.play();
+        if (p && p.catch) p.catch(function () {});
+        sound.classList.add('hidden');
+      }
+      sound.addEventListener('click', function (e) {
+        e.stopPropagation();
+        enableSound();
+      });
+      video.addEventListener('click', function () {
+        if (video.muted) return enableSound();
+        if (video.paused) video.play(); else video.pause();
+      });
+
+      // Some browsers block muted autoplay in low-power mode; start on first touch instead.
+      var p = video.play();
+      if (p && p.catch) p.catch(function () {
+        document.addEventListener('touchstart', function once() {
+          video.play().catch(function () {});
+          document.removeEventListener('touchstart', once);
+        }, { passive: true });
+      });
+
+      // Bottom bar appears once the main App Store button scrolls out of view.
+      var sticky = document.getElementById('sticky');
+      var cta = document.getElementById('cta');
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          sticky.classList.toggle('show', !entries[0].isIntersecting);
+        }).observe(cta);
+      } else {
+        sticky.classList.add('show');
+      }
+    })();
+  </script>
+</body>
+</html>

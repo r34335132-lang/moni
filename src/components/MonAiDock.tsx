@@ -8,6 +8,7 @@ import { useTheme } from '@/src/hooks/useTheme';
 import { useLanguage } from '@/src/providers/LanguageProvider';
 import { AppText, Font } from '@/src/components/ui/AppText';
 import { PressableScale } from '@/src/components/ui/Glass';
+import { TutorialTarget } from '@/src/providers/TutorialProvider';
 
 interface MonAiDockProps {
   onAdd: () => void;
@@ -93,64 +94,70 @@ export function MonAiDock({ onAdd, onVoice, onPhoto, onSearch }: MonAiDockProps)
               elevation: 8,
             }}
           >
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-                setMenuOpen((v) => !v);
-              }}
-              accessibilityLabel={t('fab.add')}
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: 23,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Ionicons name={menuOpen ? 'close' : 'add'} size={26} color={colors.foreground} />
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-                onSearch?.();
-              }}
-              accessibilityLabel={t('common.seeAll')}
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: 23,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Ionicons name="search-outline" size={22} color={colors.foreground} />
-            </Pressable>
+            <TutorialTarget id="dock-add">
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+                  setMenuOpen((v) => !v);
+                }}
+                accessibilityLabel={t('fab.add')}
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 23,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name={menuOpen ? 'close' : 'add'} size={26} color={colors.foreground} />
+              </Pressable>
+            </TutorialTarget>
+            <TutorialTarget id="dock-search">
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+                  onSearch?.();
+                }}
+                accessibilityLabel={t('common.seeAll')}
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 23,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="search-outline" size={22} color={colors.foreground} />
+              </Pressable>
+            </TutorialTarget>
           </View>
         </View>
 
-        <PressableScale
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-            onVoice();
-          }}
-          scaleTo={0.94}
-          accessibilityLabel={t('fab.voice')}
-          style={{
-            width: 68,
-            height: 68,
-            borderRadius: 34,
-            backgroundColor: colors.primary,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: colors.primary,
-            shadowOpacity: 0.45,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 8 },
-            elevation: 10,
-          }}
-        >
-          <Ionicons name="mic" size={30} color={colors.primaryForeground} />
-        </PressableScale>
+        <TutorialTarget id="dock-voice">
+          <PressableScale
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+              onVoice();
+            }}
+            scaleTo={0.94}
+            accessibilityLabel={t('fab.voice')}
+            style={{
+              width: 68,
+              height: 68,
+              borderRadius: 34,
+              backgroundColor: colors.primary,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: colors.primary,
+              shadowOpacity: 0.45,
+              shadowRadius: 16,
+              shadowOffset: { width: 0, height: 8 },
+              elevation: 10,
+            }}
+          >
+            <Ionicons name="mic" size={30} color={colors.primaryForeground} />
+          </PressableScale>
+        </TutorialTarget>
       </View>
     </View>
   );

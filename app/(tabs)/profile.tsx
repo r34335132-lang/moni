@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { View, Alert } from 'react-native';
+import { View, Alert, ActivityIndicator, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/providers/AuthProvider';
 import { useLanguage } from '@/src/providers/LanguageProvider';
+import { useTutorial } from '@/src/providers/TutorialProvider';
 import { useTheme } from '@/src/hooks/useTheme';
 import { profileService } from '@/src/services/transactionService';
+import { avatarService, AvatarPermissionError, type AvatarSource } from '@/src/services/avatarService';
 import { subscriptionService } from '@/src/services/subscriptionService';
+import { UserAvatar } from '@/src/components/ui/UserAvatar';
+import { FormModal } from '@/src/components/ui/FormModal';
 import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { ScreenContainer } from '@/src/components/ScreenContainer';
 import { Input } from '@/src/components/ui/Input';
@@ -32,6 +36,44 @@ export default function ProfileScreen() {
   const [name, setName] = useState(profile?.full_name ?? '');
   const [currency, setCurrency] = useState(profile?.currency ?? 'MXN');
   const [saving, setSaving] = useState(false);
+  const [photoSheet, setPhotoSheet] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const { replay } = useTutorial();
+
+  const changePhoto = (source: AvatarSource | 'remove') => {
+    if (!user) return;
+    setPhotoSheet(false);
+    // iOS can't present the picker while the sheet is still dismissing.
+    setTimeout(async () => {
+      try {
+        if (source === 'remove') {
+          setUploadingPhoto(true);
+          await avatarService.remove(user.id);
+        } else {
+          const asset = await avatarService.pick(source);
+          if (!asset) return;
+          setUploadingPhoto(true);
+          await avatarService.upload(user.id, asset);
+        }
+        await refreshProfile();
+      } catch (e) {
+        if (e instanceof AvatarPermissionError) {
+          Alert.alert(
+            t('common.permissionRequired'),
+            e.source === 'camera' ? t('profile.photoCameraDenied') : t('profile.photoLibraryDenied'),
+            [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: t('transactionForms.openSettings'), onPress: () => Linking.openSettings() },
+            ],
+          );
+        } else {
+          Alert.alert(t('common.error'), getErrorMessage(e));
+        }
+      } finally {
+        setUploadingPhoto(false);
+      }
+    }, 450);
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -64,13 +106,6 @@ export default function ProfileScreen() {
       },
     ]);
   };
-
-  const initials = (profile?.full_name || profile?.email || 'M')
-    .split(' ')
-    .map((p) => p[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 
   const menuItems = [
     { icon: 'list-outline' as const, label: t('profile.movements'), route: '/(tabs)/transactions' },
@@ -116,19 +151,57 @@ export default function ProfileScreen() {
               elevation: 3,
             }}
           >
-            <View
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 36,
-                backgroundColor: colors.accent,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 12,
-              }}
+            <PressableScale
+              onPress={() => setPhotoSheet(true)}
+              disabled={uploadingPhoto}
+              scaleTo={0.95}
+              accessibilityLabel={profile?.avatar_url ? t('profile.changePhoto') : t('profile.addPhoto')}
+              style={{ marginBottom: 12 }}
             >
-              <AppText style={{ fontFamily: Font.bold, fontSize: 26, color: colors.primary }}>{initials}</AppText>
-            </View>
+              <UserAvatar uri={profile?.avatar_url} name={profile?.full_name || profile?.email} size={88} />
+              {uploadingPhoto ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    borderRadius: 44,
+                    backgroundColor: 'rgba(0,0,0,0.45)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : null}
+              <View
+                style={{
+                  position: 'absolute',
+                  right: -2,
+                  bottom: -2,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: colors.primary,
+                  borderWidth: 3,
+                  borderColor: colors.card,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="camera" size={14} color={colors.primaryForeground} />
+              </View>
+            </PressableScale>
+            {!profile?.avatar_url && !uploadingPhoto ? (
+              <AppText
+                onPress={() => setPhotoSheet(true)}
+                style={{ color: colors.primary, fontFamily: Font.semibold, fontSize: 13, marginTop: -4, marginBottom: 8 }}
+              >
+                {t('profile.addPhoto')}
+              </AppText>
+            ) : null}
             <AppText style={{ fontFamily: Font.bold, fontSize: 22, letterSpacing: -0.3 }}>
               {profile?.full_name || t('profile.name')}
             </AppText>
@@ -260,7 +333,14 @@ export default function ProfileScreen() {
           </SettingsGroup>
         </AnimatedIn>
 
+        <SectionLabel>{t('profile.help')}</SectionLabel>
         <AnimatedIn index={4}>
+          <SettingsGroup>
+            <SettingsRow icon="sparkles-outline" label={t('profile.replayTutorial')} onPress={replay} isLast />
+          </SettingsGroup>
+        </AnimatedIn>
+
+        <AnimatedIn index={5}>
           <SettingsGroup>
             <SettingsRow icon="log-out-outline" label={t('profile.signOut')} onPress={signOut} />
             <SettingsRow
@@ -277,6 +357,21 @@ export default function ProfileScreen() {
           {t('brand.name')} · v1.0.0
         </AppText>
       </ScreenContainer>
+
+      <FormModal visible={photoSheet} onClose={() => setPhotoSheet(false)} title={t('profile.photoTitle')}>
+        <SettingsGroup>
+          <SettingsRow icon="camera-outline" label={t('profile.takePhoto')} onPress={() => changePhoto('camera')} />
+          <SettingsRow
+            icon="images-outline"
+            label={t('profile.chooseFromGallery')}
+            onPress={() => changePhoto('library')}
+            isLast={!profile?.avatar_url}
+          />
+          {profile?.avatar_url ? (
+            <SettingsRow icon="trash-outline" label={t('profile.removePhoto')} onPress={() => changePhoto('remove')} destructive isLast />
+          ) : null}
+        </SettingsGroup>
+      </FormModal>
     </View>
   );
 }

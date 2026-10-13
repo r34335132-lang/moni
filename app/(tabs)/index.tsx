@@ -21,9 +21,12 @@ import { AppText, Font } from '@/src/components/ui/AppText';
 import { formatCurrency, formatDate, getDayDateRange, INCOME_COLOR, EXPENSE_COLOR } from '@/src/core/utils/format';
 import { getErrorMessage } from '@/src/core/utils/errors';
 import { MoneyDisplay } from '@/src/components/ui/MoneyDisplay';
+import { UserAvatar } from '@/src/components/ui/UserAvatar';
+import { TutorialTarget, useTutorial } from '@/src/providers/TutorialProvider';
 
 export default function DashboardScreen() {
   const { profile } = useAuth();
+  const { startIfNeeded, cancelPending } = useTutorial();
   const { colors, radius, isDark } = useTheme();
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
@@ -61,6 +64,14 @@ export default function DashboardScreen() {
       refetchRecent();
       refetchToday();
     }, [refetchDashboard, refetchReport, refetchBudgets, refetchRecent, refetchToday]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isLoading) return;
+      startIfNeeded();
+      return cancelPending;
+    }, [isLoading, startIfNeeded, cancelPending]),
   );
 
   const barItems = useMemo(
@@ -110,55 +121,65 @@ export default function DashboardScreen() {
           justifyContent: 'space-between',
         }}
       >
-        <PressableScale
-          onPress={() => router.push('/accounts')}
-          scaleTo={0.97}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            backgroundColor: colors.card,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
-            borderRadius: 980,
-            shadowColor: '#000',
-            shadowOpacity: isDark ? 0.25 : 0.06,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 3,
-          }}
-        >
-          <AppText style={{ fontFamily: Font.semibold, fontSize: 15 }}>{t('dashboard.personal')}</AppText>
-          <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
-        </PressableScale>
+        <TutorialTarget id="accounts">
+          <PressableScale
+            onPress={() => router.push('/accounts')}
+            scaleTo={0.97}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: colors.card,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 980,
+              shadowColor: '#000',
+              shadowOpacity: isDark ? 0.25 : 0.06,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 3,
+            }}
+          >
+            <AppText style={{ fontFamily: Font.semibold, fontSize: 15 }}>{t('dashboard.personal')}</AppText>
+            <Ionicons name="chevron-down" size={16} color={colors.mutedForeground} />
+          </PressableScale>
+        </TutorialTarget>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <PressableScale
-            onPress={() => router.push('/(tabs)/reminders')}
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              backgroundColor: colors.card,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="calendar-outline" size={20} color={colors.foreground} />
-          </PressableScale>
-          <PressableScale
-            onPress={() => router.push('/(tabs)/profile')}
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              backgroundColor: colors.card,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="settings-outline" size={20} color={colors.foreground} />
-          </PressableScale>
+          <TutorialTarget id="reminders">
+            <PressableScale
+              onPress={() => router.push('/(tabs)/reminders')}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 21,
+                backgroundColor: colors.card,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="calendar-outline" size={20} color={colors.foreground} />
+            </PressableScale>
+          </TutorialTarget>
+          <TutorialTarget id="profile">
+            <PressableScale
+              onPress={() => router.push('/(tabs)/profile')}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 21,
+                backgroundColor: colors.card,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {profile?.avatar_url ? (
+                <UserAvatar uri={profile.avatar_url} name={profile.full_name || profile.email} size={38} />
+              ) : (
+                <Ionicons name="settings-outline" size={20} color={colors.foreground} />
+              )}
+            </PressableScale>
+          </TutorialTarget>
         </View>
       </View>
 
@@ -187,83 +208,85 @@ export default function DashboardScreen() {
               </AppText>
             )}
 
-            <View style={{ width: '100%', paddingHorizontal: 8, marginTop: 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-                <PressableScale
-                  onPress={() => router.push('/transaction/add-manual')}
+            <TutorialTarget id="balance" style={{ width: '100%' }}>
+              <View style={{ width: '100%', paddingHorizontal: 8, marginTop: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+                  <PressableScale
+                    onPress={() => router.push('/transaction/add-manual')}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 17,
+                      backgroundColor: colors.primary,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name="add" size={22} color={colors.primaryForeground} />
+                  </PressableScale>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <MoneyDisplay
+                      amount={balance}
+                      currency={currency}
+                      tone={balance < 0 ? 'expense' : 'neutral'}
+                      size="xl"
+                      staged={false}
+                      align="center"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Flow chips */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' }}>
+                <View
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 17,
-                    backgroundColor: colors.primary,
+                    flex: 1,
+                    minWidth: 0,
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    gap: 8,
+                    backgroundColor: colors.card,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderRadius: 980,
+                    shadowColor: '#000',
+                    shadowOpacity: isDark ? 0.2 : 0.05,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 3 },
+                    elevation: 2,
                   }}
                 >
-                  <Ionicons name="add" size={22} color={colors.primaryForeground} />
-                </PressableScale>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <MoneyDisplay
-                    amount={balance}
-                    currency={currency}
-                    tone={balance < 0 ? 'expense' : 'neutral'}
-                    size="xl"
-                    staged={false}
-                    align="center"
-                  />
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: EXPENSE_COLOR }} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <MoneyDisplay amount={monthlyExpenses} currency={currency} tone="expense" size="sm" staged={false} align="left" />
+                  </View>
+                </View>
+                <View
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: colors.card,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderRadius: 980,
+                    shadowColor: '#000',
+                    shadowOpacity: isDark ? 0.2 : 0.05,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 3 },
+                    elevation: 2,
+                  }}
+                >
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: INCOME_COLOR }} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <MoneyDisplay amount={monthlyIncome} currency={currency} tone="income" size="sm" staged={false} align="left" />
+                  </View>
                 </View>
               </View>
-            </View>
-
-            {/* Flow chips */}
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' }}>
-              <View
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                  backgroundColor: colors.card,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderRadius: 980,
-                  shadowColor: '#000',
-                  shadowOpacity: isDark ? 0.2 : 0.05,
-                  shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 3 },
-                  elevation: 2,
-                }}
-              >
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: EXPENSE_COLOR }} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <MoneyDisplay amount={monthlyExpenses} currency={currency} tone="expense" size="sm" staged={false} align="left" />
-                </View>
-              </View>
-              <View
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                  backgroundColor: colors.card,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderRadius: 980,
-                  shadowColor: '#000',
-                  shadowOpacity: isDark ? 0.2 : 0.05,
-                  shadowRadius: 8,
-                  shadowOffset: { width: 0, height: 3 },
-                  elevation: 2,
-                }}
-              >
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: INCOME_COLOR }} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <MoneyDisplay amount={monthlyIncome} currency={currency} tone="income" size="sm" staged={false} align="left" />
-                </View>
-              </View>
-            </View>
+            </TutorialTarget>
           </View>
         </AnimatedIn>
 

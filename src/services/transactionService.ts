@@ -169,7 +169,7 @@ export const categoryService = {
 };
 
 export const profileService = {
-  async update(userId: string, data: { full_name?: string; currency?: string; avatar_url?: string }) {
+  async update(userId: string, data: { full_name?: string; currency?: string; avatar_url?: string | null }) {
     const { data: profile, error } = await supabase.from('profiles').update(data).eq('id', userId).select().single();
     if (error) handleSupabaseError(error);
     return profile;
